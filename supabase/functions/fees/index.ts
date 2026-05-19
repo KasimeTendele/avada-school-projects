@@ -138,6 +138,47 @@ router.post("/", async (req) => {
     .select()
     .single();
   if (error) return errors.validation(error.message);
+
+  // Dispatch notifications to concerned parents
+  try {
+    let studentsQ = admin
+      .from("students")
+      .select("id, first_name, last_name, school_id, class_id");
+    if (data.scope === "STUDENT") studentsQ = studentsQ.eq("id", data.student_id);
+    else if (data.scope === "CLASS") studentsQ = studentsQ.eq("class_id", data.class_id);
+    else studentsQ = studentsQ.eq("school_id", data.school_id);
+    const { data: concerned } = await studentsQ;
+    const studentIds = (concerned ?? []).map((s) => s.id);
+    if (studentIds.length) {
+      const { data: links } = await admin
+        .from("parent_students")
+        .select("parent_user_id, student_id")
+        .in("student_id", studentIds);
+      const studentById = new Map((concerned ?? []).map((s) => [s.id, s]));
+      const notifs = (links ?? []).map((l) => {
+        const s = studentById.get(l.student_id);
+        const name = s ? `${s.first_name} ${s.last_name}` : "votre enfant";
+        return {
+          user_id: l.parent_user_id,
+          type: "FEE",
+          title: `Nouveaux frais : ${data.label}`,
+          message: `Un paiement de ${Number(data.amount)} ${data.currency} est requis pour ${name}.`,
+          data: {
+            feeId: data.id,
+            studentId: l.student_id,
+            studentName: name,
+            amount: Number(data.amount),
+            currency: data.currency,
+            label: data.label,
+          },
+        };
+      });
+      if (notifs.length) await admin.from("notifications").insert(notifs);
+    }
+  } catch (_e) {
+    // do not fail fee creation if notification dispatch fails
+  }
+
   return ok(data, 201, "Fee created");
 });
 
