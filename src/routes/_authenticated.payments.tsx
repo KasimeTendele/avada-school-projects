@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { LuSearch as Search, LuSlidersHorizontal as SlidersHorizontal, LuChevronRight as ChevronRight, LuX as X, LuWallet as Wallet, LuCalendar as Calendar, LuFileText as FileText, LuCreditCard as PaymentIcon, LuGraduationCap as GraduationCap, LuUsers as UsersIcon, LuArrowUpDown as ArrowUpDown, LuChevronDown as ChevronDown } from "react-icons/lu";
+import { LuSearch as Search, LuSlidersHorizontal as SlidersHorizontal, LuChevronRight as ChevronRight, LuX as X, LuCheck as Check, LuWallet as Wallet, LuCalendar as Calendar, LuFileText as FileText, LuCreditCard as PaymentIcon, LuGraduationCap as GraduationCap, LuUsers as UsersIcon, LuArrowUpDown as ArrowUpDown, LuChevronDown as ChevronDown } from "react-icons/lu";
 import { ParentShell } from "@/components/ParentShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
