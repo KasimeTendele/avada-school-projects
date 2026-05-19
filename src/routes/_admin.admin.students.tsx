@@ -218,6 +218,16 @@ function StudentsPage() {
         />
       </section>
 
+      <section className="px-4 lg:px-6 pb-8">
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setPage}
+        />
+      </section>
+
       {createOpen && (
         <CreateStudentDrawer
           initialSchoolId={schoolId}
