@@ -765,7 +765,7 @@ export type Database = {
     Enums: {
       app_role: "super_admin" | "admin" | "cashier" | "parent"
       fee_scope: "STUDENT" | "CLASS" | "SCHOOL"
-      notification_type: "PAYMENT" | "REMINDER" | "EVENT" | "SYSTEM"
+      notification_type: "PAYMENT" | "REMINDER" | "EVENT" | "SYSTEM" | "FEE"
       payment_method: "CASH" | "MOBILE_MONEY" | "BANK_TRANSFER" | "CARD"
       payment_status: "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED"
       school_status: "active" | "suspended" | "pending"
@@ -899,7 +899,7 @@ export const Constants = {
     Enums: {
       app_role: ["super_admin", "admin", "cashier", "parent"],
       fee_scope: ["STUDENT", "CLASS", "SCHOOL"],
-      notification_type: ["PAYMENT", "REMINDER", "EVENT", "SYSTEM"],
+      notification_type: ["PAYMENT", "REMINDER", "EVENT", "SYSTEM", "FEE"],
       payment_method: ["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CARD"],
       payment_status: ["PENDING", "COMPLETED", "FAILED", "CANCELLED"],
       school_status: ["active", "suspended", "pending"],
