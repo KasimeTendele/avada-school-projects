@@ -293,7 +293,6 @@ function HomePage() {
             iconColor="text-tint-peach-foreground"
             icon={<FileText className="h-5 w-5" />}
             label="Reçus"
-            toProps={{ to: "/receipts" }}
           />
           <QuickAction
             to="/transactions"
