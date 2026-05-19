@@ -41,6 +41,12 @@ interface Notif {
   } | null;
 }
 
+interface FeeStatus {
+  fee_id: string;
+  remaining: number;
+  student: { id: string };
+}
+
 interface Prefs {
   payments: boolean;
   system: boolean;
@@ -60,6 +66,25 @@ function NotificationsPage() {
     queryKey: ["notifications"],
     queryFn: () => apiFetch<{ items: Notif[] }>("/notifications?limit=30"),
   });
+
+  const feesQ = useQuery({
+    queryKey: ["fees-by-parent"],
+    queryFn: () => apiFetch<{ items: FeeStatus[] }>("/fees-by-parent"),
+  });
+
+  // Map "feeId|studentId" -> remaining
+  const remainingByKey = (() => {
+    const m = new Map<string, number>();
+    (feesQ.data?.items ?? []).forEach((f) => {
+      m.set(`${f.fee_id}|${f.student.id}`, Number(f.remaining || 0));
+    });
+    return m;
+  })();
+  const isFeePaid = (n: Notif) => {
+    if (n.type !== "FEE" || !n.data?.feeId || !n.data?.studentId) return false;
+    const r = remainingByKey.get(`${n.data.feeId}|${n.data.studentId}`);
+    return r !== undefined && r <= 0;
+  };
 
   const prefs = useQuery({
     queryKey: ["notification_preferences", user?.id],
@@ -110,6 +135,10 @@ function NotificationsPage() {
   const onNotifClick = (n: Notif) => {
     if (!n.read) markRead(n.id);
     if (n.type === "FEE" && n.data?.feeId && n.data?.studentId) {
+      if (isFeePaid(n)) {
+        toast.success("Ce motif est déjà entièrement payé.");
+        return;
+      }
       setSelectedFee(n);
     }
   };
@@ -142,21 +171,33 @@ function NotificationsPage() {
         )}
         <div className="space-y-3">
           {items.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              onClick={() => onNotifClick(n)}
-              className={`block w-full text-left rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] transition-colors ${!n.read ? "border border-primary/30" : ""} ${n.type === "FEE" ? "hover:bg-accent/30" : ""}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <p className="font-semibold">{n.title}</p>
-                  {n.message && <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>}
-                  <p className="mt-2 text-xs text-muted-foreground">{formatDate(n.created_at)}</p>
-                </div>
-                {!n.read && <span className="mt-1 h-2 w-2 rounded-full bg-primary" />}
-              </div>
-            </button>
+            (() => {
+              const paid = isFeePaid(n);
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => onNotifClick(n)}
+                  className={`block w-full text-left rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] transition-colors ${!n.read ? "border border-primary/30" : ""} ${n.type === "FEE" && !paid ? "hover:bg-accent/30" : ""}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <p className="font-semibold">{n.title}</p>
+                      {n.message && <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>}
+                      <div className="mt-2 flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">{formatDate(n.created_at)}</p>
+                        {paid && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-tint-mint px-2 py-0.5 text-[10px] font-semibold text-tint-mint-foreground">
+                            Déjà payé
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {!n.read && <span className="mt-1 h-2 w-2 rounded-full bg-primary" />}
+                  </div>
+                </button>
+              );
+            })()
           ))}
         </div>
       </section>
