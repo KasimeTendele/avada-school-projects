@@ -24,6 +24,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated.home'
 import { Route as AuthenticatedChildrenRouteImport } from './routes/_authenticated.children'
 import { Route as CashierCashierIndexRouteImport } from './routes/_cashier.cashier.index'
+import { Route as AuthenticatedReceiptsIndexRouteImport } from './routes/_authenticated.receipts.index'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
 import { Route as CashierCashierStudentsRouteImport } from './routes/_cashier.cashier.students'
 import { Route as CashierCashierProfileRouteImport } from './routes/_cashier.cashier.profile'
@@ -119,6 +120,12 @@ const CashierCashierIndexRoute = CashierCashierIndexRouteImport.update({
   path: '/cashier/',
   getParentRoute: () => CashierRoute,
 } as any)
+const AuthenticatedReceiptsIndexRoute =
+  AuthenticatedReceiptsIndexRouteImport.update({
+    id: '/receipts/',
+    path: '/receipts/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/cashier/profile': typeof CashierCashierProfileRoute
   '/cashier/students': typeof CashierCashierStudentsRoute
   '/admin/': typeof AdminAdminIndexRoute
+  '/receipts/': typeof AuthenticatedReceiptsIndexRoute
   '/cashier/': typeof CashierCashierIndexRoute
   '/admin/schools/$id': typeof AdminAdminSchoolsIdRoute
   '/admin/schools/new': typeof AdminAdminSchoolsNewRoute
@@ -282,6 +290,7 @@ export interface FileRoutesByTo {
   '/cashier/profile': typeof CashierCashierProfileRoute
   '/cashier/students': typeof CashierCashierStudentsRoute
   '/admin': typeof AdminAdminIndexRoute
+  '/receipts': typeof AuthenticatedReceiptsIndexRoute
   '/cashier': typeof CashierCashierIndexRoute
   '/admin/schools/$id': typeof AdminAdminSchoolsIdRoute
   '/admin/schools/new': typeof AdminAdminSchoolsNewRoute
@@ -320,6 +329,7 @@ export interface FileRoutesById {
   '/_cashier/cashier/profile': typeof CashierCashierProfileRoute
   '/_cashier/cashier/students': typeof CashierCashierStudentsRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_authenticated/receipts/': typeof AuthenticatedReceiptsIndexRoute
   '/_cashier/cashier/': typeof CashierCashierIndexRoute
   '/_admin/admin/schools/$id': typeof AdminAdminSchoolsIdRoute
   '/_admin/admin/schools/new': typeof AdminAdminSchoolsNewRoute
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/cashier/profile'
     | '/cashier/students'
     | '/admin/'
+    | '/receipts/'
     | '/cashier/'
     | '/admin/schools/$id'
     | '/admin/schools/new'
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '/cashier/profile'
     | '/cashier/students'
     | '/admin'
+    | '/receipts'
     | '/cashier'
     | '/admin/schools/$id'
     | '/admin/schools/new'
@@ -427,6 +439,7 @@ export interface FileRouteTypes {
     | '/_cashier/cashier/profile'
     | '/_cashier/cashier/students'
     | '/_admin/admin/'
+    | '/_authenticated/receipts/'
     | '/_cashier/cashier/'
     | '/_admin/admin/schools/$id'
     | '/_admin/admin/schools/new'
@@ -554,6 +567,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/cashier/'
       preLoaderRoute: typeof CashierCashierIndexRouteImport
       parentRoute: typeof CashierRoute
+    }
+    '/_authenticated/receipts/': {
+      id: '/_authenticated/receipts/'
+      path: '/receipts'
+      fullPath: '/receipts/'
+      preLoaderRoute: typeof AuthenticatedReceiptsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_admin/admin/': {
       id: '/_admin/admin/'
@@ -752,6 +772,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
   AuthenticatedReceiptsIdRoute: typeof AuthenticatedReceiptsIdRoute
   AuthenticatedReportsPaymentsRoute: typeof AuthenticatedReportsPaymentsRoute
+  AuthenticatedReceiptsIndexRoute: typeof AuthenticatedReceiptsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -763,6 +784,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
   AuthenticatedReceiptsIdRoute: AuthenticatedReceiptsIdRoute,
   AuthenticatedReportsPaymentsRoute: AuthenticatedReportsPaymentsRoute,
+  AuthenticatedReceiptsIndexRoute: AuthenticatedReceiptsIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

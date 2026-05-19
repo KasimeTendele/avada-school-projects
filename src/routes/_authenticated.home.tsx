@@ -292,19 +292,16 @@ function HomePage() {
             tint="bg-tint-peach"
             iconColor="text-tint-peach-foreground"
             icon={<FileText className="h-5 w-5" />}
-            label="Documents"
+            label="Reçus"
+            toProps={{ to: "/receipts" }}
           />
-          <button
-            onClick={() => { fees.refetch(); students.refetch(); payments.refetch(); refresh(); }}
-            className="flex flex-col items-center gap-2"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-tint-lavender text-tint-lavender-foreground">
-              <Clock className="h-5 w-5" />
-            </span>
-            <span className="text-center text-[11px] font-semibold leading-tight text-foreground">
-              Historique
-            </span>
-          </button>
+          <QuickAction
+            to="/transactions"
+            tint="bg-tint-lavender"
+            iconColor="text-tint-lavender-foreground"
+            icon={<Clock className="h-5 w-5" />}
+            label="Historique"
+          />
         </div>
       </section>
 
