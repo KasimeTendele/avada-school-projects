@@ -288,7 +288,7 @@ function HomePage() {
             label="Mes enfants"
           />
           <QuickAction
-            to="/payments"
+            to="/receipts"
             tint="bg-tint-peach"
             iconColor="text-tint-peach-foreground"
             icon={<FileText className="h-5 w-5" />}
@@ -496,7 +496,7 @@ function AvatarStack({ students, extra }: { students: Student[]; extra: number }
 }
 
 function QuickAction({ to, tint, iconColor, icon, label }: {
-  to: "/payments" | "/notifications" | "/children";
+  to: "/payments" | "/notifications" | "/children" | "/receipts" | "/transactions";
   tint: string; iconColor: string; icon: React.ReactNode; label: string;
 }) {
   return (
