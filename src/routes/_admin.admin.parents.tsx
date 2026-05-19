@@ -12,6 +12,7 @@ import * as XLSX from "xlsx";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminHero } from "@/components/AdminHero";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { Pagination } from "@/components/Pagination";
 import { apiFetch } from "@/lib/api";
 import { uploadPublicFile } from "@/lib/upload";
 import { toast } from "sonner";
@@ -39,6 +40,8 @@ function ParentsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-parents", search],
@@ -49,6 +52,13 @@ function ParentsPage() {
     },
   });
   const items = data?.items ?? [];
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = useMemo(
+    () => items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [items, safePage, pageSize],
+  );
 
   return (
     <AdminShell>
@@ -74,12 +84,12 @@ function ParentsPage() {
           <Search className="h-5 w-5 text-primary" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Rechercher (nom, email, matricule…)"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">{items.length} parents</p>
+        <p className="mt-3 text-sm text-muted-foreground">{totalItems} parents</p>
       </section>
 
       <section className="px-4 pt-2 pb-6 lg:hidden">
@@ -92,7 +102,7 @@ function ParentsPage() {
           </div>
         )}
         <div className="space-y-3">
-          {items.map((p) => (
+          {pageItems.map((p) => (
             <button
               key={p.id}
               type="button"
@@ -128,10 +138,10 @@ function ParentsPage() {
       <section className="hidden lg:block px-6 pt-4 pb-8">
         <DataTable<ParentRow>
           loading={isLoading}
-          rows={items}
+          rows={pageItems}
           rowKey={(p) => p.id}
           onRowClick={(p) => setDetailId(p.id)}
-          caption={<span>{items.length} parent{items.length > 1 ? "s" : ""}</span>}
+          caption={<span>{totalItems} parent{totalItems > 1 ? "s" : ""}</span>}
           empty="Aucun parent. Créez un compte ou importez depuis Excel."
           columns={[
             {
