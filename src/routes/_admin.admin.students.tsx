@@ -91,7 +91,7 @@ function StudentsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [activeStudent, setActiveStudent] = useState<StudentRow | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 50;
+  const pageSize = 20;
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-students", schoolId, search, page, pageSize],
