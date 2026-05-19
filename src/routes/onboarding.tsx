@@ -45,7 +45,7 @@ function SplashScreen({ leaving }: { leaving: boolean }) {
       }`}
     >
         <div className="flex flex-col items-center animate-[fade-in_0.8s_ease-out]">
-        <p className="mt-2 text-2xl lg:text-4xl font-semibold text-primary/90 text-center px-6">Paiement des frais scolaires</p>
+        <p className="mt-2 text-2xl md:text-4xl font-semibold text-primary/90 text-center px-6">Paiement des frais scolaires</p>
         <div className="mt-10 flex gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-primary/80 animate-bounce [animation-delay:-0.3s]" />
           <span className="h-1.5 w-1.5 rounded-full bg-primary/80 animate-bounce [animation-delay:-0.15s]" />
@@ -92,7 +92,7 @@ function OnboardingPage() {
   return (
     <>
       {/* Mobile / Tablet layout */}
-      <MobileShell className="lg:hidden">
+      <MobileShell className="md:hidden">
         <div className="relative flex h-screen sm:h-[calc(100vh-3rem)] flex-col">
         {showSplash && <SplashScreen leaving={splashLeaving} />}
 
@@ -151,7 +151,7 @@ function OnboardingPage() {
       </MobileShell>
 
       {/* Desktop layout (lg+) : split-screen */}
-      <div className="relative hidden lg:flex h-screen w-full bg-background">
+      <div className="relative hidden md:flex h-screen w-full bg-background">
         {showSplash && <SplashScreen leaving={splashLeaving} />}
 
         {/* Image side */}
@@ -170,7 +170,7 @@ function OnboardingPage() {
         </div>
 
         {/* Content side */}
-        <div className="relative flex h-full w-1/2 flex-col justify-center px-16 xl:px-24">
+        <div className="relative flex h-full w-1/2 flex-col justify-center px-16 lg:px-24">
           {!isLast && (
             <button
               onClick={finish}
@@ -181,10 +181,10 @@ function OnboardingPage() {
           )}
 
           <div className="max-w-lg">
-            <h1 className="text-4xl xl:text-5xl font-bold leading-tight text-foreground">
+            <h1 className="text-4xl lg:text-5xl font-bold leading-tight text-foreground">
               {slide.title}
             </h1>
-            <p className="mt-5 text-base xl:text-lg leading-relaxed text-muted-foreground">
+            <p className="mt-5 text-base lg:text-lg leading-relaxed text-muted-foreground">
               {slide.subtitle}
             </p>
 
