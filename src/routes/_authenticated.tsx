@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_authenticated")({
     // Attendre que la restauration de session soit terminée avant
     // de décider de rediriger — sinon on tourne en boucle login ↔ home
     // au rechargement (loading=true, isAuthenticated=false transitoires).
-    if (context.auth?.loading) return;
+    if (!context.auth || context.auth.loading) return;
     if (!context.auth?.isAuthenticated) {
       throw redirect({
         to: "/login",
