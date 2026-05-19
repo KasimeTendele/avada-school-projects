@@ -155,7 +155,18 @@ router.post("/", async (req) => {
         .select("parent_user_id, student_id")
         .in("student_id", studentIds);
       const studentById = new Map((concerned ?? []).map((s) => [s.id, s]));
-      const notifs = (links ?? []).map((l) => {
+      const parentIds = Array.from(new Set((links ?? []).map((l) => l.parent_user_id)));
+      // Respect parent's "payments" notification preference (default true if no row)
+      const { data: prefs } = await admin
+        .from("notification_preferences")
+        .select("user_id, payments")
+        .in("user_id", parentIds);
+      const paymentsPrefByUser = new Map<string, boolean>();
+      for (const p of prefs ?? []) paymentsPrefByUser.set(p.user_id, p.payments !== false);
+      const filteredLinks = (links ?? []).filter(
+        (l) => paymentsPrefByUser.get(l.parent_user_id) !== false,
+      );
+      const notifs = filteredLinks.map((l) => {
         const s = studentById.get(l.student_id);
         const name = s ? `${s.first_name} ${s.last_name}` : "votre enfant";
         return {
