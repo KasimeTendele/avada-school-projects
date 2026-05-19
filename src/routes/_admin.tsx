@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_admin")({
   beforeLoad: ({ context, location }) => {
+    if (!context.auth || context.auth.loading) return;
     if (!context.auth?.isAuthenticated) {
       throw redirect({ to: "/login", search: { redirect: location.href } });
     }
