@@ -16,6 +16,7 @@ interface School {
   promoter_name?: string | null;
   students_count: number;
   fees_count: number;
+  logo_url?: string | null;
 }
 interface SchoolsResp {
   items: School[];
@@ -89,8 +90,12 @@ function SchoolsList() {
               className="block rounded-3xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-elevated)]"
             >
               <div className="flex items-start gap-3">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-tint-sky text-tint-sky-foreground">
-                  <GraduationCap className="h-5 w-5" />
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-tint-sky text-tint-sky-foreground">
+                  {s.logo_url ? (
+                    <img src={s.logo_url} alt={s.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <GraduationCap className="h-5 w-5" />
+                  )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">

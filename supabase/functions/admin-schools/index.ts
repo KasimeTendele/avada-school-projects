@@ -24,7 +24,7 @@ router.get("/", async (req) => {
     { count: studentsCount },
     { count: feesCount },
   ] = await Promise.all([
-    admin.from("schools").select("id, name, sigle, city, address, status, promoter_name, promoter_phone, levels, sections, vacation, regime, epst_number, created_at"),
+    admin.from("schools").select("id, name, sigle, city, address, status, promoter_name, promoter_phone, levels, sections, vacation, regime, epst_number, logo_url, created_at"),
     admin.from("students").select("id, school_id"),
     admin.from("fees").select("id, school_id"),
     admin.from("schools").select("id", { count: "exact", head: true }),
