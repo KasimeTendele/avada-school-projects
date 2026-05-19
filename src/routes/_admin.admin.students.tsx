@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateStudentDrawer } from "@/components/CreateStudentDrawer";
+import { Pagination } from "@/components/Pagination";
 
 interface StudentRow {
   id: string;
@@ -34,6 +35,9 @@ interface StudentRow {
 interface StudentsResp {
   items: StudentRow[];
   totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 interface ImportRow {
@@ -86,20 +90,25 @@ function StudentsPage() {
   const [search, setSearch] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [activeStudent, setActiveStudent] = useState<StudentRow | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-students", schoolId, search],
+    queryKey: ["admin-students", schoolId, search, page, pageSize],
     queryFn: () => {
       const qs = new URLSearchParams();
       if (schoolId) qs.set("schoolId", schoolId);
       if (search) qs.set("search", search);
-      qs.set("limit", "200");
+      qs.set("page", String(page));
+      qs.set("limit", String(pageSize));
       return apiFetch<StudentsResp>(`/students?${qs.toString()}`);
     },
     enabled: !!schoolId || isSuper,
   });
 
   const items = data?.items ?? [];
+  const totalItems = data?.totalItems ?? items.length;
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <AdminShell>
@@ -127,12 +136,12 @@ function StudentsPage() {
           <Search className="h-5 w-5 text-primary" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Rechercher par nom ou matricule…"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">{items.length} élèves</p>
+        <p className="mt-3 text-sm text-muted-foreground">{totalItems} élèves</p>
       </section>
 
       <section className="px-4 pt-2 pb-6 lg:hidden">
@@ -206,6 +215,16 @@ function StudentsPage() {
               cell: () => <span className="text-xs font-semibold text-primary">Voir la fiche →</span>,
             },
           ] as DataTableColumn<StudentRow>[]}
+        />
+      </section>
+
+      <section className="px-4 lg:px-6 pb-8">
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setPage}
         />
       </section>
 
