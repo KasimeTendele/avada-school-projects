@@ -91,6 +91,7 @@ function AdminHome() {
   const pendingCount = data?.pending.count ?? 0;
   const studentsCount = data?.studentsCount ?? 0;
   const schoolsCount = data?.schoolsCount ?? 0;
+  const activeSchoolsCount = data?.activeSchoolsCount ?? 0;
   const usersCount = data?.usersCount ?? 0;
   const cashiersCount = data?.cashiersCount ?? 0;
 
@@ -189,8 +190,8 @@ function AdminHome() {
           />
           <StatCard
             label={isSuper ? "Écoles actives" : "Élèves suivis"}
-            value={String(isSuper ? schoolsCount : studentsCount)}
-            unit={isSuper ? `/ ${formatNumber(usersCount)} users` : `/ ${formatNumber(cashiersCount)} caissiers`}
+            value={String(isSuper ? activeSchoolsCount : studentsCount)}
+            unit={isSuper ? undefined : `/ ${formatNumber(cashiersCount)} caissiers`}
             delta="+8%"
             deltaTone="positive"
             sub={isSuper ? "Dans votre périmètre" : "Effectif total"}
@@ -403,7 +404,7 @@ function IconBtn({
 function StatCard({
   label, value, unit, delta, deltaTone, sub, icon, iconBg, spark,
 }: {
-  label: string; value: string; unit: string;
+  label: string; value: string; unit?: string;
   delta: string; deltaTone: "positive" | "negative"; sub: string;
   icon: React.ReactNode; iconBg: string; spark: React.ReactNode;
 }) {
@@ -424,7 +425,7 @@ function StatCard({
       <p className="mt-4 text-[11px] font-semibold text-muted-foreground">{label}</p>
       <p className="mt-2 text-3xl font-black leading-none tracking-tight text-foreground">
         {value}
-        <span className="ml-1 text-xs font-bold text-muted-foreground">{unit}</span>
+        {unit && <span className="ml-1 text-xs font-bold text-muted-foreground">{unit}</span>}
       </p>
       <p className="mt-2 text-[11px] text-muted-foreground">{sub}</p>
 
