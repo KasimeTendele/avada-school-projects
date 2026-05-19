@@ -45,7 +45,7 @@ function SplashScreen({ leaving }: { leaving: boolean }) {
       }`}
     >
         <div className="flex flex-col items-center animate-[fade-in_0.8s_ease-out]">
-        <p className="mt-2 text-2xl font-semibold text-primary/90 text-center px-6">Paiement des frais scolaires</p>
+        <p className="mt-2 text-2xl lg:text-4xl font-semibold text-primary/90 text-center px-6">Paiement des frais scolaires</p>
         <div className="mt-10 flex gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-primary/80 animate-bounce [animation-delay:-0.3s]" />
           <span className="h-1.5 w-1.5 rounded-full bg-primary/80 animate-bounce [animation-delay:-0.15s]" />
@@ -90,8 +90,10 @@ function OnboardingPage() {
   const next = () => (isLast ? finish() : setIndex(index + 1));
 
   return (
-    <MobileShell>
-      <div className="relative flex h-screen sm:h-[calc(100vh-3rem)] flex-col">
+    <>
+      {/* Mobile / Tablet layout */}
+      <MobileShell className="lg:hidden">
+        <div className="relative flex h-screen sm:h-[calc(100vh-3rem)] flex-col">
         {showSplash && <SplashScreen leaving={splashLeaving} />}
 
         {/* Slider plein écran */}
@@ -145,7 +147,70 @@ function OnboardingPage() {
             {slide.cta}
           </Button>
         </div>
+        </div>
+      </MobileShell>
+
+      {/* Desktop layout (lg+) : split-screen */}
+      <div className="relative hidden lg:flex h-screen w-full bg-background">
+        {showSplash && <SplashScreen leaving={splashLeaving} />}
+
+        {/* Image side */}
+        <div className="relative h-full w-1/2 overflow-hidden">
+          <div
+            className="flex h-full w-full transition-transform duration-700 ease-out"
+            style={{ transform: `translateX(-${index * 100}%)` }}
+          >
+            {slides.map((s, i) => (
+              <div key={i} className="relative h-full w-full shrink-0">
+                <img src={s.image} alt={s.title} className="h-full w-full object-cover" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-transparent" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Content side */}
+        <div className="relative flex h-full w-1/2 flex-col justify-center px-16 xl:px-24">
+          {!isLast && (
+            <button
+              onClick={finish}
+              className="absolute right-8 top-8 rounded-full border border-border bg-background px-4 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              Passer
+            </button>
+          )}
+
+          <div className="max-w-lg">
+            <h1 className="text-4xl xl:text-5xl font-bold leading-tight text-foreground">
+              {slide.title}
+            </h1>
+            <p className="mt-5 text-base xl:text-lg leading-relaxed text-muted-foreground">
+              {slide.subtitle}
+            </p>
+
+            <div className="mt-10 flex items-center gap-2">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setIndex(i)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === index ? "w-8 bg-primary" : "w-2 bg-muted-foreground/30"
+                  }`}
+                  aria-label={`Aller à la slide ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            <Button
+              onClick={next}
+              size="lg"
+              className="mt-8 h-14 rounded-full bg-primary px-10 text-base font-semibold text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary-glow"
+            >
+              {slide.cta}
+            </Button>
+          </div>
+        </div>
       </div>
-    </MobileShell>
+    </>
   );
 }
