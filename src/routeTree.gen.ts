@@ -17,6 +17,7 @@ import { Route as CashierRouteImport } from './routes/_cashier'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTransactionsRouteImport } from './routes/_authenticated.transactions'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated.profile'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated.payments'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated.notifications'
@@ -81,6 +82,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedTransactionsRoute =
+  AuthenticatedTransactionsRouteImport.update({
+    id: '/transactions',
+    path: '/transactions',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -227,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/transactions': typeof AuthenticatedTransactionsRoute
   '/admin/collections': typeof AdminAdminCollectionsRoute
   '/admin/fees': typeof AdminAdminFeesRoute
   '/admin/notifications': typeof AdminAdminNotificationsRoute
@@ -260,6 +268,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/payments': typeof AuthenticatedPaymentsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/transactions': typeof AuthenticatedTransactionsRoute
   '/admin/collections': typeof AdminAdminCollectionsRoute
   '/admin/fees': typeof AdminAdminFeesRoute
   '/admin/notifications': typeof AdminAdminNotificationsRoute
@@ -297,6 +306,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/transactions': typeof AuthenticatedTransactionsRoute
   '/_admin/admin/collections': typeof AdminAdminCollectionsRoute
   '/_admin/admin/fees': typeof AdminAdminFeesRoute
   '/_admin/admin/notifications': typeof AdminAdminNotificationsRoute
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/payments'
     | '/profile'
+    | '/transactions'
     | '/admin/collections'
     | '/admin/fees'
     | '/admin/notifications'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/payments'
     | '/profile'
+    | '/transactions'
     | '/admin/collections'
     | '/admin/fees'
     | '/admin/notifications'
@@ -401,6 +413,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/payments'
     | '/_authenticated/profile'
+    | '/_authenticated/transactions'
     | '/_admin/admin/collections'
     | '/_admin/admin/fees'
     | '/_admin/admin/notifications'
@@ -492,6 +505,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/transactions': {
+      id: '/_authenticated/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof AuthenticatedTransactionsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
@@ -729,6 +749,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedTransactionsRoute: typeof AuthenticatedTransactionsRoute
   AuthenticatedReceiptsIdRoute: typeof AuthenticatedReceiptsIdRoute
   AuthenticatedReportsPaymentsRoute: typeof AuthenticatedReportsPaymentsRoute
 }
@@ -739,6 +760,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedTransactionsRoute: AuthenticatedTransactionsRoute,
   AuthenticatedReceiptsIdRoute: AuthenticatedReceiptsIdRoute,
   AuthenticatedReportsPaymentsRoute: AuthenticatedReportsPaymentsRoute,
 }
