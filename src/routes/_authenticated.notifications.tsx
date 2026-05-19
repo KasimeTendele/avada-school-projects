@@ -1,11 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { ParentShell } from "@/components/ParentShell";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { LuBell as Bell, LuGraduationCap as GraduationCap, LuChartColumnIncreasing as LineChart, LuCalendar as Calendar, LuReceipt as Receipt, LuCheckCheck as CheckCheck } from "react-icons/lu";
 import { Switch } from "@/components/ui/switch";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AvadaPaySheet, type AvadaPayContext } from "@/components/AvadaPaySheet";
+import { initials, formatNumber } from "@/lib/format";
+import { LuChevronRight as ChevronRight } from "react-icons/lu";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
@@ -25,6 +31,14 @@ interface Notif {
   type: string;
   read: boolean;
   created_at: string;
+  data?: {
+    feeId?: string;
+    studentId?: string;
+    studentName?: string;
+    amount?: number;
+    currency?: string;
+    label?: string;
+  } | null;
 }
 
 interface Prefs {
@@ -39,6 +53,8 @@ interface Prefs {
 function NotificationsPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const [selectedFee, setSelectedFee] = useState<Notif | null>(null);
+  const [payCtx, setPayCtx] = useState<AvadaPayContext | null>(null);
 
   const list = useQuery({
     queryKey: ["notifications"],
@@ -82,6 +98,22 @@ function NotificationsPage() {
   const items = list.data?.items ?? [];
   const unread = items.filter((n) => !n.read).length;
 
+  const markRead = async (id: string) => {
+    try {
+      await apiFetch(`/notifications/${id}/read`, { method: "PATCH" });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onNotifClick = (n: Notif) => {
+    if (!n.read) markRead(n.id);
+    if (n.type === "FEE" && n.data?.feeId && n.data?.studentId) {
+      setSelectedFee(n);
+    }
+  };
+
   return (
     <ParentShell>
       <header className="rounded-b-[2rem] bg-[image:var(--gradient-primary)] px-6 pt-10 pb-8 text-primary-foreground">
@@ -110,7 +142,12 @@ function NotificationsPage() {
         )}
         <div className="space-y-3">
           {items.map((n) => (
-            <article key={n.id} className={`rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] ${!n.read ? "border border-primary/30" : ""}`}>
+            <button
+              key={n.id}
+              type="button"
+              onClick={() => onNotifClick(n)}
+              className={`block w-full text-left rounded-2xl bg-card p-4 shadow-[var(--shadow-card)] transition-colors ${!n.read ? "border border-primary/30" : ""} ${n.type === "FEE" ? "hover:bg-accent/30" : ""}`}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <p className="font-semibold">{n.title}</p>
@@ -119,7 +156,7 @@ function NotificationsPage() {
                 </div>
                 {!n.read && <span className="mt-1 h-2 w-2 rounded-full bg-primary" />}
               </div>
-            </article>
+            </button>
           ))}
         </div>
       </section>
@@ -148,6 +185,61 @@ function NotificationsPage() {
             onChange={(v) => updatePref.mutate({ reminders: v })} />
         </div>
       </section>
+
+      {/* Concerned student sheet */}
+      <Sheet open={!!selectedFee} onOpenChange={(o) => !o && setSelectedFee(null)}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto rounded-t-[2rem] p-0">
+          {selectedFee?.data && (
+            <div className="px-5 pt-3 pb-6">
+              <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
+              <h2 className="text-lg font-extrabold">{selectedFee.title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Élève concerné — touchez pour payer.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = selectedFee.data!;
+                  setPayCtx({
+                    feeId: d.feeId!,
+                    studentId: d.studentId!,
+                    studentName: d.studentName ?? "Élève",
+                    amount: Number(d.amount ?? 0),
+                    currency: d.currency ?? "CDF",
+                    label: d.label ?? selectedFee.title,
+                  });
+                  setSelectedFee(null);
+                }}
+                className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-[var(--shadow-card)]"
+              >
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-accent text-accent-foreground font-bold">
+                    {initials(selectedFee.data.studentName ?? "EL")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-extrabold">
+                    {selectedFee.data.studentName}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {selectedFee.data.label}
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-primary">
+                    {formatNumber(Number(selectedFee.data.amount ?? 0))} {selectedFee.data.currency}
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <AvadaPaySheet
+        open={!!payCtx}
+        onOpenChange={(o) => !o && setPayCtx(null)}
+        context={payCtx}
+      />
     </ParentShell>
   );
 }
