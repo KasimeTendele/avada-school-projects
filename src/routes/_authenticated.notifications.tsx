@@ -206,23 +206,28 @@ function NotificationsPage() {
         <h2 className="mb-3 text-base font-bold">Préférences de notifications</h2>
         <div className="rounded-2xl bg-card shadow-[var(--shadow-card)]">
           <PrefRow icon={<Receipt className="h-4 w-4 text-primary" />} label="Paiements & reçus"
-            checked={!!prefs.data?.payments}
+            checked={prefs.data?.payments ?? true}
+            disabled={updatePref.isPending || prefs.isLoading}
             onChange={(v) => updatePref.mutate({ payments: v })} />
           <Divider />
           <PrefRow icon={<GraduationCap className="h-4 w-4 text-primary" />} label="Infos école"
-            checked={!!prefs.data?.system}
+            checked={prefs.data?.system ?? true}
+            disabled={updatePref.isPending || prefs.isLoading}
             onChange={(v) => updatePref.mutate({ system: v })} />
           <Divider />
           <PrefRow icon={<LineChart className="h-4 w-4 text-primary" />} label="Résultats & bulletins"
-            checked={!!prefs.data?.events}
+            checked={prefs.data?.events ?? true}
+            disabled={updatePref.isPending || prefs.isLoading}
             onChange={(v) => updatePref.mutate({ events: v })} />
           <Divider />
           <PrefRow icon={<Calendar className="h-4 w-4 text-primary" />} label="Événements & réunions"
-            checked={!!prefs.data?.events}
+            checked={prefs.data?.events ?? true}
+            disabled={updatePref.isPending || prefs.isLoading}
             onChange={(v) => updatePref.mutate({ events: v })} />
           <Divider />
           <PrefRow icon={<Bell className="h-4 w-4 text-primary" />} label="Rappels échéances"
-            checked={!!prefs.data?.reminders}
+            checked={prefs.data?.reminders ?? true}
+            disabled={updatePref.isPending || prefs.isLoading}
             onChange={(v) => updatePref.mutate({ reminders: v })} />
         </div>
       </section>
@@ -285,14 +290,14 @@ function NotificationsPage() {
   );
 }
 
-function PrefRow({ icon, label, checked, onChange }: { icon: React.ReactNode; label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function PrefRow({ icon, label, checked, onChange, disabled }: { icon: React.ReactNode; label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <div className="flex items-center justify-between px-4 py-3.5">
       <div className="flex items-center gap-3">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">{icon}</span>
         <span className="text-sm font-medium">{label}</span>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   );
 }

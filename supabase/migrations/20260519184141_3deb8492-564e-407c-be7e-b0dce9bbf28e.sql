@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.dispatch_fee_reminders() FROM PUBLIC, anon, authenticated;

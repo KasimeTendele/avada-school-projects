@@ -731,6 +731,7 @@ export type Database = {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
+      dispatch_fee_reminders: { Args: never; Returns: number }
       find_student_by_matricule: {
         Args: { _matricule: string; _school_id: string }
         Returns: {
