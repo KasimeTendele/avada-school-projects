@@ -92,8 +92,9 @@ function OnboardingPage() {
   return (
     <>
       {/* Mobile / Tablet layout */}
-      <MobileShell className="md:hidden">
-        <div className="relative flex h-screen sm:h-[calc(100vh-3rem)] flex-col">
+      <div className="md:hidden">
+        <MobileShell>
+          <div className="relative flex h-screen sm:h-[calc(100vh-3rem)] flex-col">
         {showSplash && <SplashScreen leaving={splashLeaving} />}
 
         {/* Slider plein écran */}
@@ -147,8 +148,9 @@ function OnboardingPage() {
             {slide.cta}
           </Button>
         </div>
-        </div>
-      </MobileShell>
+          </div>
+        </MobileShell>
+      </div>
 
       {/* Desktop layout (lg+) : split-screen */}
       <div className="relative hidden md:flex h-screen w-full bg-background">
