@@ -122,9 +122,8 @@ function HomePage() {
   const items = fees.data?.items ?? [];
   const studentList = students.data?.items ?? [];
   const childCount = studentList.length;
-  const pendingPayments = (payments.data?.items ?? []).filter(
-    (p) => p.status?.toUpperCase() === "PENDING" || p.status?.toUpperCase() === "INITIATED",
-  ).length;
+  // "Paiements en attente" = nombre de frais avec un reste à payer > 0
+  const pendingPayments = items.filter((i) => Number(i.remaining || 0) > 0).length;
 
   const chartData = useMemo(
     () => buildChartData(payments.data?.items ?? [], period),
@@ -208,7 +207,7 @@ function HomePage() {
 
           {/* Paiements en attente — carte teal foncé */}
           <Link
-            to="/payments"
+            to="/transactions"
             className="rounded-3xl bg-teal-deep p-4 text-teal-deep-foreground shadow-[var(--shadow-elevated)]"
           >
             <div className="flex items-start justify-between">
@@ -221,7 +220,7 @@ function HomePage() {
             </div>
             <p className="mt-4 text-4xl font-extrabold leading-none">{pendingPayments}</p>
             <div className="mt-4 flex items-center gap-1 text-sm font-medium text-white/85">
-              Voir les paiements <ChevronRight className="h-4 w-4" />
+              Voir l'historique <ChevronRight className="h-4 w-4" />
             </div>
           </Link>
         </div>
