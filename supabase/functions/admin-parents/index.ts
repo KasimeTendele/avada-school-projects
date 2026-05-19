@@ -205,6 +205,7 @@ router.post("/", async (req) => {
     professional_address,
     avatar_url,
     substitute,
+    primary_school_id: schoolId,
   }, { onConflict: "id" });
 
   // S'assurer du rôle parent
@@ -371,6 +372,7 @@ router.post("/import", async (req) => {
       physical_address: (p.physical_address ?? "").trim() || null,
       professional_address: (p.professional_address ?? "").trim() || null,
       avatar_url: (p.avatar_url ?? "").trim() || null,
+      primary_school_id: schoolId,
     }, { onConflict: "id" });
 
     await admin.from("user_roles").upsert(
