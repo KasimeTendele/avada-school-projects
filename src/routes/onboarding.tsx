@@ -164,7 +164,7 @@ function OnboardingPage() {
           >
             {slides.map((s, i) => (
               <div key={i} className="relative h-full w-full shrink-0">
-                <img src={s.image} alt={s.title} className="h-full w-full object-contain bg-muted" />
+                <img src={s.image} alt={s.title} className="h-full w-full object-cover object-top bg-muted" />
               </div>
             ))}
           </div>
