@@ -1,5 +1,5 @@
 import { Router } from "../_shared/router.ts";
-import { requireAuth, adminClient, hasAnyRole } from "../_shared/auth.ts";
+import { requireAuth, adminClient } from "../_shared/auth.ts";
 import { ok, errors } from "../_shared/response.ts";
 
 const router = new Router("/fees-by-parent");
