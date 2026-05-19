@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { formatNumber, formatDate, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { AvadaPaySheet, type AvadaPayContext } from "@/components/AvadaPaySheet";
 
 export const Route = createFileRoute("/_authenticated/payments")({
   head: () => ({
@@ -73,13 +74,13 @@ const DEFAULT_FILTERS: Filters = {
 
 function PaymentsPage() {
   const qc = useQueryClient();
-  const [step, setStep] = useState<"list" | "pay">("list");
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
 
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [sheetFeeId, setSheetFeeId] = useState<string | null>(null); // single fee to pay
+  const [payCtx, setPayCtx] = useState<AvadaPayContext | null>(null);
 
   const fees = useQuery({
     queryKey: ["fees-by-parent"],
@@ -183,8 +184,7 @@ function PaymentsPage() {
 
   return (
     <ParentShell>
-      {step === "list" && (
-        <>
+      <>
           <PageHeader
             title="Payer des frais"
             subtitle="Sélectionnez les frais à régler pour chaque enfant."
@@ -398,29 +398,34 @@ function PaymentsPage() {
                   student={activeStudent}
                   onCancel={() => setSheetFeeId(null)}
                   onContinue={() => {
-                    setStep("pay");
+                    setPayCtx({
+                      feeId: sheetFee.fee_id,
+                      studentId: activeStudent.id,
+                      studentName: `${activeStudent.first_name} ${activeStudent.last_name}`,
+                      amount: Number(sheetFee.remaining),
+                      currency: sheetFee.currency,
+                      label: sheetFee.label,
+                    });
+                    setSheetFeeId(null);
+                    setActiveStudentId(null);
                   }}
                 />
               )}
             </SheetContent>
           </Sheet>
-        </>
-      )}
 
-      {step === "pay" && activeStudent && sheetFee && (
-        <PayView
-          student={activeStudent}
-          fee={sheetFee}
-          onBack={() => setStep("list")}
-          onSuccess={() => {
-            qc.invalidateQueries({ queryKey: ["fees-by-parent"] });
-            qc.invalidateQueries({ queryKey: ["payments-mine-home"] });
-            setStep("list");
-            setActiveStudentId(null);
-            setSheetFeeId(null);
+        <AvadaPaySheet
+          open={!!payCtx}
+          onOpenChange={(o) => {
+            if (!o) {
+              setPayCtx(null);
+              qc.invalidateQueries({ queryKey: ["fees-by-parent"] });
+              qc.invalidateQueries({ queryKey: ["payments-mine-home"] });
+            }
           }}
+          context={payCtx}
         />
-      )}
+      </>
     </ParentShell>
   );
 }
