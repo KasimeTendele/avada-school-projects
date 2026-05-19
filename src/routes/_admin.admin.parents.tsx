@@ -199,6 +199,16 @@ function ParentsPage() {
         />
       </section>
 
+      <section className="px-4 lg:px-6 pb-8">
+        <Pagination
+          page={safePage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setPage}
+        />
+      </section>
+
       {createOpen && (
         <CreateParentDrawer
           onClose={() => setCreateOpen(false)}
