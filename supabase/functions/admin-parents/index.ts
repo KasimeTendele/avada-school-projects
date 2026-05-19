@@ -45,15 +45,35 @@ router.get("/", async (req) => {
   // Élèves de l'école -> ids
   const { data: students } = await admin.from("students").select("id, first_name, last_name, matricule").eq("school_id", schoolId);
   const studentIds = (students ?? []).map((s: any) => s.id);
-  if (studentIds.length === 0) {
-    return ok({ items: [] });
+
+  const { data: links } = studentIds.length
+    ? await admin
+        .from("parent_students")
+        .select("parent_user_id, student_id, relationship")
+        .in("student_id", studentIds)
+    : { data: [] as any[] };
+
+  // Parents directement rattachés à l'école (primary_school_id)
+  const { data: schoolProfs } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("primary_school_id", schoolId);
+  const schoolParentIds = new Set<string>((schoolProfs ?? []).map((p: any) => p.id));
+  // Garder uniquement ceux ayant le rôle parent
+  let parentRoleIds = new Set<string>();
+  if (schoolParentIds.size) {
+    const { data: roles } = await admin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "parent")
+      .in("user_id", Array.from(schoolParentIds));
+    parentRoleIds = new Set((roles ?? []).map((r: any) => r.user_id));
   }
 
-  const { data: links } = await admin
-    .from("parent_students")
-    .select("parent_user_id, student_id, relationship")
-    .in("student_id", studentIds);
-  const parentIds = Array.from(new Set((links ?? []).map((l: any) => l.parent_user_id)));
+  const parentIds = Array.from(new Set([
+    ...(links ?? []).map((l: any) => l.parent_user_id),
+    ...Array.from(parentRoleIds),
+  ]));
   if (parentIds.length === 0) return ok({ items: [] });
 
   const { data: profiles } = await admin
@@ -185,6 +205,7 @@ router.post("/", async (req) => {
     professional_address,
     avatar_url,
     substitute,
+    primary_school_id: schoolId,
   }, { onConflict: "id" });
 
   // S'assurer du rôle parent
@@ -351,6 +372,7 @@ router.post("/import", async (req) => {
       physical_address: (p.physical_address ?? "").trim() || null,
       professional_address: (p.professional_address ?? "").trim() || null,
       avatar_url: (p.avatar_url ?? "").trim() || null,
+      primary_school_id: schoolId,
     }, { onConflict: "id" });
 
     await admin.from("user_roles").upsert(
