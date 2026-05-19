@@ -404,7 +404,7 @@ function IconBtn({
 function StatCard({
   label, value, unit, delta, deltaTone, sub, icon, iconBg, spark,
 }: {
-  label: string; value: string; unit: string;
+  label: string; value: string; unit?: string;
   delta: string; deltaTone: "positive" | "negative"; sub: string;
   icon: React.ReactNode; iconBg: string; spark: React.ReactNode;
 }) {
@@ -425,7 +425,7 @@ function StatCard({
       <p className="mt-4 text-[11px] font-semibold text-muted-foreground">{label}</p>
       <p className="mt-2 text-3xl font-black leading-none tracking-tight text-foreground">
         {value}
-        <span className="ml-1 text-xs font-bold text-muted-foreground">{unit}</span>
+        {unit && <span className="ml-1 text-xs font-bold text-muted-foreground">{unit}</span>}
       </p>
       <p className="mt-2 text-[11px] text-muted-foreground">{sub}</p>
 
