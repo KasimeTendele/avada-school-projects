@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuBell as Bell, LuSettings as Settings, LuCreditCard as CreditCard, LuFileText as FileText, LuUsers as Users, LuClock as Clock, LuChevronRight as ChevronRight, LuCamera as Camera } from "react-icons/lu";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +53,7 @@ type Scope = "global" | "child";
 function HomePage() {
   const { user, profile, refresh, roles } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [period, setPeriod] = useState<Period>("week");
   const [scope, setScope] = useState<Scope>("global");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,12 +119,49 @@ function HomePage() {
     queryFn: () =>
       apiFetch<{ items: PaymentRow[] }>("/payments?limit=100&sort=-created_at"),
   });
+  const notifs = useQuery({
+    queryKey: ["notifications-bell"],
+    queryFn: () =>
+      apiFetch<{ items: { id: string; read: boolean }[] }>("/notifications?limit=100"),
+    refetchInterval: 30000,
+  });
+
+  // Realtime: refresh badge as new notifications / fees / payments arrive
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`bell-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["notifications-bell"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "fees" },
+        () => qc.invalidateQueries({ queryKey: ["fees-by-parent"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payments" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["fees-by-parent"] });
+          qc.invalidateQueries({ queryKey: ["payments-mine-home"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, qc]);
 
   const items = fees.data?.items ?? [];
   const studentList = students.data?.items ?? [];
   const childCount = studentList.length;
   // "Paiements en attente" = nombre de frais avec un reste à payer > 0
   const pendingPayments = items.filter((i) => Number(i.remaining || 0) > 0).length;
+  const unreadNotifs = (notifs.data?.items ?? []).filter((n) => !n.read).length;
+  const bellBadge = unreadNotifs + pendingPayments;
 
   const chartData = useMemo(
     () => buildChartData(payments.data?.items ?? [], period),
@@ -172,10 +210,15 @@ function HomePage() {
           <div className="flex items-center gap-2">
             <Link
               to="/notifications"
-              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-card shadow-[var(--shadow-card)]"
+              className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-card shadow-[var(--shadow-card)]"
               aria-label="Notifications"
             >
               <Bell className="h-5 w-5 text-foreground" />
+              {bellBadge > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">
+                  {bellBadge > 99 ? "99+" : bellBadge}
+                </span>
+              )}
             </Link>
             <Link
               to="/profile"
