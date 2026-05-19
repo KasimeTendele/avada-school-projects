@@ -21,6 +21,14 @@ export async function apiFetch<T = unknown>(
   const json = await res.json().catch(() => ({}));
   if (!res.ok || (json && json.success === false)) {
     const msg = (json && (json.message as string)) || `Request failed (${res.status})`;
+    if (res.status === 401) {
+      // Session révoquée ou expirée côté serveur : on purge la session locale
+      // et on redirige vers /login pour une nouvelle authentification.
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.replace("/login");
+      }
+    }
     throw new Error(msg);
   }
   return (json?.data ?? json) as T;
