@@ -1,20 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { LuSearch as Search, LuSlidersHorizontal as SlidersHorizontal, LuChevronRight as ChevronRight, LuArrowLeft as ArrowLeft, LuX as X, LuCheck as Check, LuSmartphone as Smartphone, LuCreditCard as CardIcon, LuWallet as Wallet, LuCalendar as Calendar, LuFileText as FileText, LuCreditCard as PaymentIcon, LuGraduationCap as GraduationCap, LuUsers as UsersIcon, LuArrowUpDown as ArrowUpDown, LuChevronDown as ChevronDown } from "react-icons/lu";
+import { LuSearch as Search, LuSlidersHorizontal as SlidersHorizontal, LuChevronRight as ChevronRight, LuX as X, LuCheck as Check, LuWallet as Wallet, LuCalendar as Calendar, LuFileText as FileText, LuCreditCard as PaymentIcon, LuGraduationCap as GraduationCap, LuUsers as UsersIcon, LuArrowUpDown as ArrowUpDown, LuChevronDown as ChevronDown } from "react-icons/lu";
 import { ParentShell } from "@/components/ParentShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import { formatNumber, formatDate, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { AvadaPaySheet, type AvadaPayContext } from "@/components/AvadaPaySheet";
 
 export const Route = createFileRoute("/_authenticated/payments")({
   head: () => ({
@@ -73,13 +71,13 @@ const DEFAULT_FILTERS: Filters = {
 
 function PaymentsPage() {
   const qc = useQueryClient();
-  const [step, setStep] = useState<"list" | "pay">("list");
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
 
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [sheetFeeId, setSheetFeeId] = useState<string | null>(null); // single fee to pay
+  const [payCtx, setPayCtx] = useState<AvadaPayContext | null>(null);
 
   const fees = useQuery({
     queryKey: ["fees-by-parent"],
@@ -183,8 +181,7 @@ function PaymentsPage() {
 
   return (
     <ParentShell>
-      {step === "list" && (
-        <>
+      <>
           <PageHeader
             title="Payer des frais"
             subtitle="Sélectionnez les frais à régler pour chaque enfant."
@@ -398,29 +395,34 @@ function PaymentsPage() {
                   student={activeStudent}
                   onCancel={() => setSheetFeeId(null)}
                   onContinue={() => {
-                    setStep("pay");
+                    setPayCtx({
+                      feeId: sheetFee.fee_id,
+                      studentId: activeStudent.id,
+                      studentName: `${activeStudent.first_name} ${activeStudent.last_name}`,
+                      amount: Number(sheetFee.remaining),
+                      currency: sheetFee.currency,
+                      label: sheetFee.label,
+                    });
+                    setSheetFeeId(null);
+                    setActiveStudentId(null);
                   }}
                 />
               )}
             </SheetContent>
           </Sheet>
-        </>
-      )}
 
-      {step === "pay" && activeStudent && sheetFee && (
-        <PayView
-          student={activeStudent}
-          fee={sheetFee}
-          onBack={() => setStep("list")}
-          onSuccess={() => {
-            qc.invalidateQueries({ queryKey: ["fees-by-parent"] });
-            qc.invalidateQueries({ queryKey: ["payments-mine-home"] });
-            setStep("list");
-            setActiveStudentId(null);
-            setSheetFeeId(null);
+        <AvadaPaySheet
+          open={!!payCtx}
+          onOpenChange={(o) => {
+            if (!o) {
+              setPayCtx(null);
+              qc.invalidateQueries({ queryKey: ["fees-by-parent"] });
+              qc.invalidateQueries({ queryKey: ["payments-mine-home"] });
+            }
           }}
+          context={payCtx}
         />
-      )}
+      </>
     </ParentShell>
   );
 }
@@ -466,226 +468,6 @@ function FeeReadyToPay({
   );
 }
 
-/* -------------------- PAY VIEW -------------------- */
-
-function PayView({
-  student, fee, onBack, onSuccess,
-}: {
-  student: Student;
-  fee: FeeItem;
-  onBack: () => void;
-  onSuccess: () => void;
-}) {
-  const [method, setMethod] = useState<"MOBILE_MONEY" | "CARD">("MOBILE_MONEY");
-  const [provider, setProvider] = useState<"MTN" | "ORANGE" | "AIRTEL">("MTN");
-  const [phone, setPhone] = useState("");
-  const [amount, setAmount] = useState<number>(fee.remaining);
-  const [loading, setLoading] = useState(false);
-
-  const presets = useMemo(() => buildPresets(fee.remaining), [fee.remaining]);
-
-  const handlePay = async () => {
-    if (amount <= 0) {
-      toast.error("Le montant doit être supérieur à 0.");
-      return;
-    }
-    if (method === "MOBILE_MONEY" && phone.trim().length < 6) {
-      toast.error("Numéro mobile money invalide.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await apiFetch<{ payment: { id: string }; receipt: { id: string } | null }>("/payments/initiate", {
-        method: "POST",
-        body: JSON.stringify({
-          fee_id: fee.fee_id,
-          student_id: student.id,
-          amount,
-          method: method === "MOBILE_MONEY" ? `MOBILE_MONEY_${provider}` : method,
-          reference: method === "MOBILE_MONEY" ? phone : undefined,
-        }),
-      });
-      toast.success("Paiement enregistré. Reçu disponible.");
-      if (res?.receipt?.id) {
-        window.location.href = `/receipts/${res.receipt.id}`;
-        return;
-      }
-      onSuccess();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur lors du paiement.";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <>
-      <header className="bg-[image:var(--gradient-primary)] px-5 pt-8 pb-10 text-primary-foreground">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
-            aria-label="Retour"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <h1 className="text-lg font-extrabold">Payer des frais</h1>
-          <span className="w-10" />
-        </div>
-      </header>
-
-      <div className="-mt-6 rounded-t-[2rem] bg-background px-5 pt-4 pb-32">
-        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
-        <h2 className="text-center text-base font-extrabold">Paiement</h2>
-
-        <div className="mt-4 rounded-3xl bg-ink px-5 py-5 text-ink-foreground shadow-[var(--shadow-elevated)]">
-          <p className="text-sm text-white/85">Montant restant à payer</p>
-          <p className="mt-2 text-3xl font-extrabold leading-tight">
-            {formatNumber(fee.remaining)} <span className="text-2xl">{fee.currency}</span>
-          </p>
-        </div>
-
-        <div className="mt-4 rounded-3xl bg-card p-5 shadow-[var(--shadow-card)]">
-          <h3 className="mb-3 text-sm font-extrabold">Sélectionner le montant à payer</h3>
-          <div className="grid grid-cols-4 gap-2">
-            {presets.slice(0, 4).map((p) => (
-              <PresetButton key={p} value={p} active={amount === p} onClick={() => setAmount(p)} />
-            ))}
-          </div>
-          {presets[4] !== undefined && (
-            <div className="mt-2">
-              <PresetButton wide value={presets[4]} active={amount === presets[4]} onClick={() => setAmount(presets[4])} />
-            </div>
-          )}
-          <div className="mt-2 flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3">
-            <span className="text-sm font-bold text-muted-foreground">{fee.currency}</span>
-            <Input
-              type="number"
-              min={0}
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
-              className="h-8 flex-1 border-0 bg-transparent p-0 text-base font-bold text-foreground shadow-none focus-visible:ring-0"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-3xl bg-card p-5 shadow-[var(--shadow-card)]">
-          <h3 className="mb-3 text-sm font-extrabold">Sélectionner le mode de paiement</h3>
-          <RadioGroup value={method} onValueChange={(v) => setMethod(v as typeof method)} className="space-y-3">
-            <MethodOption value="MOBILE_MONEY" current={method} icon={<Smartphone className="h-5 w-5" />} label="Mobile Money" sub="Orange Money, M-Pesa, Airtel" />
-            <MethodOption value="CARD" current={method} icon={<CardIcon className="h-5 w-5" />} label="Carte bancaire" sub="Visa, Mastercard" />
-          </RadioGroup>
-
-          {method === "MOBILE_MONEY" && (
-            <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-3 gap-2">
-                {(["MTN", "ORANGE", "AIRTEL"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setProvider(p)}
-                    className={cn(
-                      "rounded-2xl border-2 px-3 py-2.5 text-xs font-bold transition-colors",
-                      provider === p ? "border-primary bg-accent text-primary" : "border-border bg-card text-foreground",
-                    )}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="msisdn" className="text-xs font-semibold">Numéro de téléphone</Label>
-                <Input
-                  id="msisdn"
-                  type="tel"
-                  placeholder="+243…"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-11 rounded-2xl border-border bg-secondary"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="fixed bottom-20 left-1/2 z-20 w-full max-w-[480px] -translate-x-1/2 border-t border-border bg-card/95 px-5 py-3 backdrop-blur-sm">
-        <Button
-          onClick={handlePay}
-          disabled={loading}
-          className="h-12 w-full rounded-2xl bg-[image:var(--gradient-primary)] text-sm font-bold text-primary-foreground"
-        >
-          {loading ? "Traitement…" : `Payer ${formatNumber(amount)} ${fee.currency}`}
-        </Button>
-      </div>
-    </>
-  );
-}
-
-function MethodOption({ value, current, icon, label, sub }: {
-  value: string; current: string; icon: React.ReactNode; label: string; sub: string;
-}) {
-  const active = value === current;
-  return (
-    <Label
-      htmlFor={`m-${value}`}
-      className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 transition-colors",
-        active ? "border-primary bg-accent/40" : "border-border bg-card",
-      )}
-    >
-      <span className={cn(
-        "flex h-11 w-11 items-center justify-center rounded-xl",
-        active ? "bg-card text-primary" : "bg-secondary text-muted-foreground",
-      )}>
-        {icon}
-      </span>
-      <span className="flex-1">
-        <span className={cn("block text-sm font-extrabold", active ? "text-primary" : "text-foreground")}>{label}</span>
-        <span className="block text-[11px] text-muted-foreground">{sub}</span>
-      </span>
-      <span className={cn(
-        "flex h-5 w-5 items-center justify-center rounded-full border-2",
-        active ? "border-primary" : "border-border",
-      )}>
-        {active && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
-      </span>
-      <RadioGroupItem id={`m-${value}`} value={value} className="sr-only" />
-    </Label>
-  );
-}
-
-function PresetButton({ value, active, onClick, wide }: {
-  value: number; active: boolean; onClick: () => void; wide?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-2xl px-2 py-3 text-sm font-bold transition-colors",
-        wide ? "w-full" : "",
-        active
-          ? "bg-ink text-ink-foreground shadow-[var(--shadow-elevated)]"
-          : "bg-secondary text-foreground hover:bg-accent",
-      )}
-    >
-      {formatNumber(value)}
-    </button>
-  );
-}
-
-function buildPresets(total: number): number[] {
-  const round = (n: number) => Math.max(1000, Math.round(n / 1000) * 1000);
-  const base = [10000, 50000, total > 0 ? total : 100000, 100000, 200000];
-  const seen = new Set<number>();
-  return base
-    .map(round)
-    .filter((v) => {
-      if (seen.has(v)) return false;
-      seen.add(v);
-      return true;
-    });
-}
 
 /* -------------------- FILTERS SHEET -------------------- */
 
