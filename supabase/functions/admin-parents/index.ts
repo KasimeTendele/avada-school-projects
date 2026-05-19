@@ -463,15 +463,36 @@ router.get("/by-school", async (req) => {
   const schoolId = resolved;
 
   const admin = adminClient();
+
+  // Parents avec un enfant dans l'école
   const { data: students } = await admin.from("students").select("id").eq("school_id", schoolId);
   const studentIds = (students ?? []).map((s: any) => s.id);
-  if (studentIds.length === 0) return ok({ items: [], total: 0, page, limit });
+  let linkedParentIds: string[] = [];
+  if (studentIds.length > 0) {
+    const { data: links } = await admin
+      .from("parent_students")
+      .select("parent_user_id")
+      .in("student_id", studentIds);
+    linkedParentIds = (links ?? []).map((l: any) => l.parent_user_id);
+  }
 
-  const { data: links } = await admin
-    .from("parent_students")
-    .select("parent_user_id")
-    .in("student_id", studentIds);
-  const parentIds = Array.from(new Set((links ?? []).map((l: any) => l.parent_user_id)));
+  // Parents rattachés à l'école (primary_school_id) ayant le rôle parent,
+  // même sans enfant lié — utile pour la liaison initiale.
+  const { data: roleRows } = await admin
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "parent");
+  const parentRoleIds = new Set((roleRows ?? []).map((r: any) => r.user_id));
+
+  const { data: schoolProfiles } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("primary_school_id", schoolId);
+  const schoolParentIds = (schoolProfiles ?? [])
+    .map((p: any) => p.id)
+    .filter((id: string) => parentRoleIds.has(id));
+
+  const parentIds = Array.from(new Set([...linkedParentIds, ...schoolParentIds]));
   if (parentIds.length === 0) return ok({ items: [], total: 0, page, limit });
 
   let q = admin
