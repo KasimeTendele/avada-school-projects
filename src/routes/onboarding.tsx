@@ -65,8 +65,8 @@ function OnboardingPage() {
   const isLast = index === slides.length - 1;
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setSplashLeaving(true), 2500);
-    const removeTimer = setTimeout(() => setShowSplash(false), 3000);
+    const fadeTimer = setTimeout(() => setSplashLeaving(true), 600);
+    const removeTimer = setTimeout(() => setShowSplash(false), 1000);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
