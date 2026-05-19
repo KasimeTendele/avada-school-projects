@@ -91,6 +91,7 @@ function AdminHome() {
   const pendingCount = data?.pending.count ?? 0;
   const studentsCount = data?.studentsCount ?? 0;
   const schoolsCount = data?.schoolsCount ?? 0;
+  const activeSchoolsCount = data?.activeSchoolsCount ?? 0;
   const usersCount = data?.usersCount ?? 0;
   const cashiersCount = data?.cashiersCount ?? 0;
 
@@ -189,8 +190,8 @@ function AdminHome() {
           />
           <StatCard
             label={isSuper ? "Écoles actives" : "Élèves suivis"}
-            value={String(isSuper ? schoolsCount : studentsCount)}
-            unit={isSuper ? `/ ${formatNumber(usersCount)} users` : `/ ${formatNumber(cashiersCount)} caissiers`}
+            value={String(isSuper ? activeSchoolsCount : studentsCount)}
+            unit={isSuper ? undefined : `/ ${formatNumber(cashiersCount)} caissiers`}
             delta="+8%"
             deltaTone="positive"
             sub={isSuper ? "Dans votre périmètre" : "Effectif total"}
