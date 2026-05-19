@@ -11,7 +11,7 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, totalPages, totalItems, pageSize, onPageChange, className }: PaginationProps) {
-  if (totalPages <= 1) return null;
+  if (totalPages <= 0 || (totalItems != null && totalItems === 0)) return null;
 
   const goto = (p: number) => {
     const next = Math.min(Math.max(1, p), totalPages);
