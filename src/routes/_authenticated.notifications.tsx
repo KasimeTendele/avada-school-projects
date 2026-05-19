@@ -290,14 +290,14 @@ function NotificationsPage() {
   );
 }
 
-function PrefRow({ icon, label, checked, onChange }: { icon: React.ReactNode; label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function PrefRow({ icon, label, checked, onChange, disabled }: { icon: React.ReactNode; label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <div className="flex items-center justify-between px-4 py-3.5">
       <div className="flex items-center gap-3">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">{icon}</span>
         <span className="text-sm font-medium">{label}</span>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   );
 }
