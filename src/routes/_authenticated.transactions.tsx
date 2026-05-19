@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { LuArrowLeft as ArrowLeft, LuReceipt as Receipt, LuClock as Clock, LuCircleCheck as CheckCircle, LuCircleX as XCircle, LuSearch as Search } from "react-icons/lu";
 import { ParentShell } from "@/components/ParentShell";
 import { apiFetch } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { formatNumber, prettyMethod } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,25 @@ function TransactionsPage() {
   const students = useQuery({
     queryKey: ["students-by-parent"],
     queryFn: () => apiFetch<{ items: Student[] }>("/students-by-parent"),
+  });
+
+  const paymentIds = useMemo(
+    () => (payments.data?.items ?? []).map((p) => p.id),
+    [payments.data],
+  );
+  const receipts = useQuery({
+    queryKey: ["receipts-for-payments", paymentIds.join(",")],
+    enabled: paymentIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("receipts")
+        .select("id, payment_id")
+        .in("payment_id", paymentIds);
+      if (error) throw error;
+      const map = new Map<string, string>();
+      (data ?? []).forEach((r) => map.set(r.payment_id, r.id));
+      return map;
+    },
   });
 
   const studentById = useMemo(() => {
@@ -228,9 +248,17 @@ function TransactionsPage() {
             );
 
             return isCompleted ? (
-              <Link key={p.id} to="/receipts/$id" params={{ id: p.id }}>
-                {Row}
-              </Link>
+              receipts.data?.get(p.id) ? (
+                <Link
+                  key={p.id}
+                  to="/receipts/$id"
+                  params={{ id: receipts.data.get(p.id)! }}
+                >
+                  {Row}
+                </Link>
+              ) : (
+                <div key={p.id}>{Row}</div>
+              )
             ) : (
               <div key={p.id}>{Row}</div>
             );
