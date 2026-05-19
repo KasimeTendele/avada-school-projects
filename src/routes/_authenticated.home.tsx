@@ -288,23 +288,19 @@ function HomePage() {
             label="Mes enfants"
           />
           <QuickAction
-            to="/payments"
+            to="/receipts"
             tint="bg-tint-peach"
             iconColor="text-tint-peach-foreground"
             icon={<FileText className="h-5 w-5" />}
-            label="Documents"
+            label="Reçus"
           />
-          <button
-            onClick={() => { fees.refetch(); students.refetch(); payments.refetch(); refresh(); }}
-            className="flex flex-col items-center gap-2"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-tint-lavender text-tint-lavender-foreground">
-              <Clock className="h-5 w-5" />
-            </span>
-            <span className="text-center text-[11px] font-semibold leading-tight text-foreground">
-              Historique
-            </span>
-          </button>
+          <QuickAction
+            to="/transactions"
+            tint="bg-tint-lavender"
+            iconColor="text-tint-lavender-foreground"
+            icon={<Clock className="h-5 w-5" />}
+            label="Historique"
+          />
         </div>
       </section>
 
@@ -500,7 +496,7 @@ function AvatarStack({ students, extra }: { students: Student[]; extra: number }
 }
 
 function QuickAction({ to, tint, iconColor, icon, label }: {
-  to: "/payments" | "/notifications" | "/children";
+  to: "/payments" | "/notifications" | "/children" | "/receipts" | "/transactions";
   tint: string; iconColor: string; icon: React.ReactNode; label: string;
 }) {
   return (
