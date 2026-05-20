@@ -27,6 +27,17 @@ async function resolveSchoolId(ctx: {
   return own;
 }
 
+async function getManagedSchoolIds(ctx: { userId: string; primarySchoolId: string | null }): Promise<Set<string>> {
+  const admin = adminClient();
+  const { data } = await admin
+    .from("admin_schools")
+    .select("school_id")
+    .eq("user_id", ctx.userId);
+  const ids = new Set<string>((data ?? []).map((r: any) => r.school_id).filter(Boolean));
+  if (ctx.primarySchoolId) ids.add(ctx.primarySchoolId);
+  return ids;
+}
+
 // GET /admin-parents?schoolId=...   -> liste des parents liés à au moins un élève de l'école
 router.get("/", async (req) => {
   const ctx = await requireAuth(req);
@@ -657,15 +668,16 @@ router.patch("/:id", async (req, params) => {
 
   if (!isSuper) {
     // Vérifier que l'admin a accès via au moins un élève partagé
-    const { data: links } = await admin
-      .from("parent_students")
-      .select("students!inner(school_id)")
-      .eq("parent_user_id", params.id);
+    const [{ data: links }, { data: profile }] = await Promise.all([
+      admin
+        .from("parent_students")
+        .select("students!inner(school_id)")
+        .eq("parent_user_id", params.id),
+      admin.from("profiles").select("primary_school_id").eq("id", params.id).maybeSingle(),
+    ]);
     const schoolIds = new Set((links ?? []).map((l: any) => l.students?.school_id).filter(Boolean));
-    const { data: my } = await admin
-      .from("admin_schools").select("school_id").eq("user_id", ctx.userId);
-    const mySchools = new Set((my ?? []).map((r: any) => r.school_id));
-    let allowed = false;
+    const mySchools = await getManagedSchoolIds(ctx);
+    let allowed = !!profile?.primary_school_id && mySchools.has(profile.primary_school_id);
     schoolIds.forEach((s) => { if (mySchools.has(s)) allowed = true; });
     if (!allowed) return errors.scopeForbidden("Pas votre parent");
   }
