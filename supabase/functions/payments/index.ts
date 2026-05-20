@@ -102,8 +102,8 @@ router.post("/initiate", async (req) => {
 
   // --- MOBILE_MONEY via AvadaPay --------------------------------------------
   if (body.method === "MOBILE_MONEY") {
-    if (fee.currency !== "CDF") {
-      return errors.validation("AvadaPay Mobile Money n'accepte que les paiements en CDF.");
+    if (fee.currency !== "CDF" && fee.currency !== "USD") {
+      return errors.validation("AvadaPay Mobile Money n'accepte que les paiements en CDF ou USD.");
     }
     const rawPhone = body.phone ?? body.reference ?? "";
     const phone = normalizePhone(rawPhone);
