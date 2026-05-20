@@ -72,8 +72,6 @@ export function AvadaPaySheet({
   const detectedProvider = useMemo(() => detectProvider(phone), [phone]);
   const provider = providerOverride ?? detectedProvider;
 
-  if (!context) return null;
-
   // Poll payment status until COMPLETED / FAILED
   useEffect(() => {
     if (!waiting) return;
@@ -116,6 +114,8 @@ export function AvadaPaySheet({
       cancelled = true;
     };
   }, [waiting, navigate, onOpenChange]);
+
+  if (!context) return null;
 
   const handlePay = async () => {
     if (method === "MOBILE_MONEY") {
