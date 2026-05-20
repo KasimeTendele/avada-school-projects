@@ -117,5 +117,13 @@ export async function initiateC2B(p: InitC2BParams): Promise<{
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
+  console.log("AvadaPay request", {
+    url: `${AVADAPAY_BASE}/${AVADAPAY_API_KEY ? AVADAPAY_API_KEY.slice(0, 6) + "..." : "MISSING"}/payment_c2b`,
+    apiKeyLen: AVADAPAY_API_KEY.length,
+    merchantId: AVADAPAY_MERCHANT_ID ? AVADAPAY_MERCHANT_ID.slice(0, 6) + "..." : "MISSING",
+    status: res.status,
+    bodySent: { ...body, provider_id: body.provider_id, customer_id: body.customer_id },
+    response: data,
+  });
   return { ok: res.ok, status: res.status, data, signature, body };
 }
