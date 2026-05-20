@@ -153,4 +153,72 @@ router.patch("/:id", async (req, params) => {
   return ok(data, 200, "Updated");
 });
 
+async function overviewHandler(req: Request): Promise<Response> {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  if (!hasAnyRole(ctx, ["super_admin"])) {
+    return errors.scopeForbidden("Super admin role required");
+  }
+  const admin = adminClient();
+  const [
+    { data: schools },
+    { data: students },
+    { data: classes },
+    { data: adminLinks },
+    { data: profiles },
+  ] = await Promise.all([
+    admin.from("schools").select("id, name, sigle, city, status, logo_url"),
+    admin.from("students").select("id, first_name, last_name, post_name, matricule, gender, school_id, class_id"),
+    admin.from("classes").select("id, name, level"),
+    admin.from("admin_schools").select("school_id, user_id"),
+    admin.from("profiles").select("id, full_name, email, phone, avatar_url"),
+  ]);
+
+  const classById = new Map<string, any>();
+  (classes ?? []).forEach((c: any) => classById.set(c.id, c));
+  const profileById = new Map<string, any>();
+  (profiles ?? []).forEach((p: any) => profileById.set(p.id, p));
+
+  const adminsBySchool = new Map<string, any[]>();
+  (adminLinks ?? []).forEach((l: any) => {
+    const arr = adminsBySchool.get(l.school_id) ?? [];
+    const p = profileById.get(l.user_id);
+    if (p) arr.push({ id: p.id, full_name: p.full_name, email: p.email, phone: p.phone, avatar_url: p.avatar_url });
+    adminsBySchool.set(l.school_id, arr);
+  });
+
+  const studentsBySchool = new Map<string, any[]>();
+  (students ?? []).forEach((s: any) => {
+    const cls = s.class_id ? classById.get(s.class_id) : null;
+    const arr = studentsBySchool.get(s.school_id) ?? [];
+    arr.push({
+      id: s.id,
+      first_name: s.first_name,
+      last_name: s.last_name,
+      post_name: s.post_name,
+      matricule: s.matricule,
+      gender: s.gender,
+      class_name: cls?.name ?? null,
+      class_level: cls?.level ?? null,
+    });
+    studentsBySchool.set(s.school_id, arr);
+  });
+
+  const items = (schools ?? [])
+    .map((s: any) => ({
+      id: s.id,
+      name: s.name,
+      sigle: s.sigle,
+      city: s.city,
+      status: s.status,
+      logo_url: s.logo_url,
+      admins: adminsBySchool.get(s.id) ?? [],
+      students: studentsBySchool.get(s.id) ?? [],
+      students_count: (studentsBySchool.get(s.id) ?? []).length,
+    }))
+    .sort((a: any, b: any) => (a.name ?? "").localeCompare(b.name ?? "", "fr"));
+
+  return ok({ items });
+}
+
 Deno.serve((req) => router.handle(req));
