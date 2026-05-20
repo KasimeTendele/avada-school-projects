@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { LuUsers as Users, LuCircleCheckBig as CheckCircle2, LuCalculator as Calculator, LuUserRound as UserRound, LuSearch as Search, LuEye as Eye, LuShieldCheck as ShieldCheck, LuChevronDown as ChevronDown, LuChevronUp as ChevronUp, LuGraduationCap as GraduationCap, LuX as X, LuPlus as Plus } from "react-icons/lu";
+import { LuUsers as Users, LuCircleCheckBig as CheckCircle2, LuCalculator as Calculator, LuUserRound as UserRound, LuSearch as Search, LuEye as Eye, LuShieldCheck as ShieldCheck, LuChevronDown as ChevronDown, LuChevronUp as ChevronUp, LuChevronLeft as ChevronLeft, LuChevronRight as ChevronRight, LuGraduationCap as GraduationCap, LuX as X, LuPlus as Plus } from "react-icons/lu";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminHero } from "@/components/AdminHero";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -50,28 +50,39 @@ function UsersList() {
   const isSuper = roles.includes("super_admin");
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [role, setRole] = useState("all");
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("name_asc");
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-users", role, status, sort, search],
+    queryKey: ["admin-users", status, sort, search],
     queryFn: () => {
       const qs = new URLSearchParams();
       if (search) qs.set("search", search);
-      if (role !== "all") qs.set("role", role);
       if (status !== "all") qs.set("status", status);
       qs.set("sort", sort);
       return apiFetch<UsersResp>(`/admin-users?${qs.toString()}`);
     },
   });
 
-  const items = data?.items ?? [];
+  const allItems = data?.items ?? [];
+  const items = useMemo(
+    () => (selectedRoles.length === 0
+      ? allItems
+      : allItems.filter((u) => u.roles.some((r) => selectedRoles.includes(r)) || selectedRoles.includes(u.role))),
+    [allItems, selectedRoles],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const ROLE_ORDER = ["super_admin", "admin", "cashier", "parent", "inspector"];
   const grouped = useMemo(() => {
     const map = new Map<string, UserRow[]>();
-    for (const u of items) {
+    for (const u of paged) {
       const key = u.role || "user";
       const arr = map.get(key) ?? [];
       arr.push(u);
@@ -80,7 +91,12 @@ function UsersList() {
     const knownOrdered = ROLE_ORDER.filter((r) => map.has(r)).map((r) => [r, map.get(r)!] as const);
     const others = [...map.entries()].filter(([k]) => !ROLE_ORDER.includes(k));
     return [...knownOrdered, ...others];
-  }, [items]);
+  }, [paged]);
+
+  const toggleRole = (r: string) => {
+    setPage(1);
+    setSelectedRoles((prev) => prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]);
+  };
 
   return (
     <AdminShell>
@@ -119,11 +135,28 @@ function UsersList() {
           <Search className="h-5 w-5 text-primary" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Rechercher par nom, email, école…"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
+        {selectedRoles.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">Filtres :</span>
+            {selectedRoles.map((r) => (
+              <button
+                key={r}
+                onClick={() => toggleRole(r)}
+                className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold", ROLE_TINTS[r] ?? "bg-secondary text-muted-foreground")}
+              >
+                {ROLE_LABELS[r] ?? r} <X className="h-3 w-3" />
+              </button>
+            ))}
+            <button onClick={() => { setSelectedRoles([]); setPage(1); }} className="text-[11px] font-bold text-primary underline">
+              Tout effacer
+            </button>
+          </div>
+        )}
         <p className="mt-3 text-sm text-muted-foreground">{items.length} utilisateurs</p>
       </section>
 
@@ -196,6 +229,30 @@ function UsersList() {
             </p>
           )}
         </div>
+
+        {items.length > pageSize && (
+          <div className="mt-5 flex items-center justify-between rounded-2xl bg-card px-3 py-2 shadow-[var(--shadow-card)]">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-bold text-primary disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" /> Préc.
+            </button>
+            <span className="text-xs font-semibold text-muted-foreground">
+              Page {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-bold text-primary disabled:opacity-40"
+            >
+              Suiv. <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Filters sheet */}
@@ -206,14 +263,39 @@ function UsersList() {
             <ShieldCheck className="h-4 w-4 text-primary" /> Filtres
           </h3>
 
-          <FilterGroup label="Rôle" icon={<ShieldCheck className="h-4 w-4 text-primary" />}>
-            <NativeSelect value={role} onChange={setRole} options={[
-              { value: "all", label: "Tous les rôles" },
-              { value: "super_admin", label: "Super admin" },
-              { value: "admin", label: "Admin" },
-              { value: "cashier", label: "Caissier" },
-              { value: "parent", label: "Parent" },
-            ]} />
+          <FilterGroup label="Rôles (multi-sélection)" icon={<ShieldCheck className="h-4 w-4 text-primary" />}>
+            <div className="flex flex-wrap gap-2">
+              {ROLE_ORDER.map((r) => {
+                const active = selectedRoles.includes(r);
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => toggleRole(r)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-2xl border px-3 py-2 text-xs font-bold transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-foreground",
+                    )}
+                  >
+                    <span className={cn("h-3.5 w-3.5 rounded-md border flex items-center justify-center", active ? "border-primary-foreground bg-primary-foreground/20" : "border-muted-foreground")}>
+                      {active && <CheckCircle2 className="h-3 w-3" />}
+                    </span>
+                    {ROLE_LABELS[r]}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedRoles.length > 0 && (
+              <button
+                type="button"
+                onClick={() => { setSelectedRoles([]); setPage(1); }}
+                className="mt-3 text-xs font-bold text-primary underline"
+              >
+                Effacer la sélection
+              </button>
+            )}
           </FilterGroup>
 
           <FilterGroup label="Statut" icon={<CheckCircle2 className="h-4 w-4 text-primary" />}>
@@ -235,7 +317,7 @@ function UsersList() {
 
           <div className="mt-5 grid grid-cols-2 gap-3">
             <button
-              onClick={() => { setRole("all"); setStatus("all"); setSort("name_asc"); }}
+              onClick={() => { setSelectedRoles([]); setStatus("all"); setSort("name_asc"); setPage(1); }}
               className="flex items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-bold"
             >
               <X className="h-4 w-4" /> Réinitialiser
