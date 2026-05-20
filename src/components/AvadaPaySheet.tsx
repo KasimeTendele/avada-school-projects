@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,37 @@ export interface AvadaPayContext {
   label: string;
 }
 
+type ProviderName = "AIRTEL" | "VODACOM" | "ORANGE" | "AFRICELL";
+
+const PROVIDER_PREFIXES: Record<ProviderName, string[]> = {
+  AIRTEL: ["97", "98", "99"],
+  VODACOM: ["81", "82", "83", "86"],
+  ORANGE: ["84", "85", "89"],
+  AFRICELL: ["90", "91"],
+};
+
+const PROVIDER_LABEL: Record<ProviderName, string> = {
+  AIRTEL: "Airtel Money",
+  VODACOM: "M-Pesa (Vodacom)",
+  ORANGE: "Orange Money",
+  AFRICELL: "Africell Money",
+};
+
+function normalizePhone(raw: string): string {
+  let p = (raw ?? "").replace(/\D/g, "");
+  if (p.startsWith("243")) p = p.slice(3);
+  if (p.startsWith("0")) p = p.slice(1);
+  return p;
+}
+
+function detectProvider(phone: string): ProviderName | null {
+  const p = normalizePhone(phone).slice(0, 2);
+  for (const [name, prefixes] of Object.entries(PROVIDER_PREFIXES)) {
+    if (prefixes.includes(p)) return name as ProviderName;
+  }
+  return null;
+}
+
 export function AvadaPaySheet({
   open,
   onOpenChange,
@@ -35,13 +66,72 @@ export function AvadaPaySheet({
   const [phone, setPhone] = useState("");
   const [card, setCard] = useState({ number: "", expiry: "", cvc: "" });
   const [loading, setLoading] = useState(false);
+  const [waiting, setWaiting] = useState<{ paymentId: string } | null>(null);
+  const [providerOverride, setProviderOverride] = useState<ProviderName | null>(null);
+
+  const detectedProvider = useMemo(() => detectProvider(phone), [phone]);
+  const provider = providerOverride ?? detectedProvider;
 
   if (!context) return null;
 
+  // Poll payment status until COMPLETED / FAILED
+  useEffect(() => {
+    if (!waiting) return;
+    let cancelled = false;
+    const start = Date.now();
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const p = await apiFetch<{ id: string; status: string; receipts?: { id: string }[] }>(
+          `/payments/${waiting.paymentId}`,
+        );
+        if (p.status === "COMPLETED") {
+          toast.success("Paiement confirmé !");
+          setWaiting(null);
+          setLoading(false);
+          onOpenChange(false);
+          const rid = p.receipts?.[0]?.id;
+          if (rid) navigate({ to: "/receipts/$id", params: { id: rid } });
+          return;
+        }
+        if (p.status === "FAILED") {
+          toast.error("Paiement échoué. Réessayez.");
+          setWaiting(null);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* ignore transient errors */
+      }
+      if (Date.now() - start > 5 * 60 * 1000) {
+        toast.error("Temps écoulé. Vérifiez votre paiement plus tard.");
+        setWaiting(null);
+        setLoading(false);
+        return;
+      }
+      setTimeout(tick, 3000);
+    };
+    tick();
+    return () => {
+      cancelled = true;
+    };
+  }, [waiting, navigate, onOpenChange]);
+
   const handlePay = async () => {
-    if (method === "MOBILE_MONEY" && phone.replace(/\D/g, "").length < 9) {
-      toast.error("Numéro de téléphone invalide.");
-      return;
+    if (method === "MOBILE_MONEY") {
+      const normalized = normalizePhone(phone);
+      if (normalized.length < 9) {
+        toast.error("Numéro invalide (9 chiffres requis, sans 0).");
+        return;
+      }
+      if (!provider) {
+        toast.error("Opérateur introuvable pour ce numéro.");
+        return;
+      }
+      if (context.currency !== "CDF") {
+        toast.error("Mobile Money disponible uniquement en CDF.");
+        return;
+      }
     }
     if (method === "CARD" && card.number.replace(/\s/g, "").length < 12) {
       toast.error("Numéro de carte invalide.");
@@ -49,8 +139,6 @@ export function AvadaPaySheet({
     }
     setLoading(true);
     try {
-      // Simulation: small delay
-      await new Promise((r) => setTimeout(r, 900));
       const res = await apiFetch<{ payment: { id: string }; receipt: { id: string } | null }>(
         "/payments/initiate",
         {
@@ -60,11 +148,19 @@ export function AvadaPaySheet({
             student_id: context.studentId,
             amount: context.amount,
             method: method === "MOBILE_MONEY" ? "MOBILE_MONEY" : "CARD",
-            reference: method === "MOBILE_MONEY" ? phone : `CARD-${card.number.slice(-4)}`,
+            reference: method === "MOBILE_MONEY" ? normalizePhone(phone) : `CARD-${card.number.slice(-4)}`,
+            phone: method === "MOBILE_MONEY" ? normalizePhone(phone) : undefined,
+            provider: method === "MOBILE_MONEY" ? provider : undefined,
           }),
         },
       );
-      toast.success("Paiement simulé avec succès. Reçu disponible.");
+      if (method === "MOBILE_MONEY") {
+        toast.success("Demande envoyée. Confirmez le paiement sur votre téléphone.");
+        setWaiting({ paymentId: res.payment.id });
+        // Keep sheet open with waiting state; loading stays true until polling resolves
+        return;
+      }
+      toast.success("Paiement enregistré. Reçu disponible.");
       onOpenChange(false);
       if (res?.receipt?.id) {
         navigate({ to: "/receipts/$id", params: { id: res.receipt.id } });
@@ -72,9 +168,10 @@ export function AvadaPaySheet({
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erreur lors du paiement.";
       toast.error(msg);
-    } finally {
       setLoading(false);
+      return;
     }
+    setLoading(false);
   };
 
   return (
@@ -141,12 +238,40 @@ export function AvadaPaySheet({
                 type="tel"
                 placeholder="85XXXXXXX, 89XXXXXXX, 97XXXXXXX…"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setProviderOverride(null);
+                }}
                 className="mt-1 h-11 rounded-xl border-border"
               />
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                 Orange : 80, 84, 85, 89 · Airtel : 97, 98, 99 · Vodacom : 81, 82, 83, 86 · Africell : 90, 91 (sans 0 devant)
               </p>
+              {phone && (
+                <div className="mt-3">
+                  <Label className="text-sm font-semibold">Opérateur</Label>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    {(Object.keys(PROVIDER_PREFIXES) as ProviderName[]).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setProviderOverride(p)}
+                        className={cn(
+                          "rounded-xl border-2 px-3 py-2 text-xs font-bold transition-colors",
+                          provider === p ? "border-primary bg-primary/5" : "border-border",
+                        )}
+                      >
+                        {PROVIDER_LABEL[p]}
+                      </button>
+                    ))}
+                  </div>
+                  {!provider && (
+                    <p className="mt-1 text-[11px] text-destructive">
+                      Préfixe non reconnu — sélectionnez l'opérateur manuellement.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-4 space-y-3">
@@ -184,13 +309,19 @@ export function AvadaPaySheet({
 
           <Button
             onClick={handlePay}
-            disabled={loading}
+            disabled={loading || !!waiting}
             className="mt-6 h-12 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground hover:bg-primary/90"
           >
-            {loading ? "Traitement…" : `Payer ${formatNumber(context.amount)} ${context.currency}`}
+            {waiting
+              ? "En attente de confirmation…"
+              : loading
+                ? "Traitement…"
+                : `Payer ${formatNumber(context.amount)} ${context.currency}`}
           </Button>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Mode simulation — aucun débit réel.
+            {waiting
+              ? "Validez la transaction sur votre téléphone (code PIN Mobile Money)."
+              : "Paiement sécurisé via AvadaPay."}
           </p>
         </div>
       </SheetContent>
