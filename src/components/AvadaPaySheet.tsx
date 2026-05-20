@@ -128,8 +128,8 @@ export function AvadaPaySheet({
         toast.error("Opérateur introuvable pour ce numéro.");
         return;
       }
-      if (context.currency !== "CDF") {
-        toast.error("Mobile Money disponible uniquement en CDF.");
+      if (context.currency !== "CDF" && context.currency !== "USD") {
+        toast.error("Mobile Money disponible uniquement en CDF ou USD.");
         return;
       }
     }
