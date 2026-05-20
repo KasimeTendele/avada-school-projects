@@ -32,6 +32,7 @@ import { Route as CashierCashierNotificationsRouteImport } from './routes/_cashi
 import { Route as CashierCashierCollectionsRouteImport } from './routes/_cashier.cashier.collections'
 import { Route as AuthenticatedReportsPaymentsRouteImport } from './routes/_authenticated.reports.payments'
 import { Route as AuthenticatedReceiptsIdRouteImport } from './routes/_authenticated.receipts.$id'
+import { Route as AdminAdminStudentsOverviewRouteImport } from './routes/_admin.admin.students-overview'
 import { Route as AdminAdminStudentsRouteImport } from './routes/_admin.admin.students'
 import { Route as AdminAdminProfileRouteImport } from './routes/_admin.admin.profile'
 import { Route as AdminAdminParentsRouteImport } from './routes/_admin.admin.parents'
@@ -164,6 +165,12 @@ const AuthenticatedReceiptsIdRoute = AuthenticatedReceiptsIdRouteImport.update({
   path: '/receipts/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AdminAdminStudentsOverviewRoute =
+  AdminAdminStudentsOverviewRouteImport.update({
+    id: '/admin/students-overview',
+    path: '/admin/students-overview',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAdminStudentsRoute = AdminAdminStudentsRouteImport.update({
   id: '/admin/students',
   path: '/admin/students',
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/admin/parents': typeof AdminAdminParentsRoute
   '/admin/profile': typeof AdminAdminProfileRoute
   '/admin/students': typeof AdminAdminStudentsRouteWithChildren
+  '/admin/students-overview': typeof AdminAdminStudentsOverviewRoute
   '/receipts/$id': typeof AuthenticatedReceiptsIdRoute
   '/reports/payments': typeof AuthenticatedReportsPaymentsRoute
   '/cashier/collections': typeof CashierCashierCollectionsRoute
@@ -283,6 +291,7 @@ export interface FileRoutesByTo {
   '/admin/parents': typeof AdminAdminParentsRoute
   '/admin/profile': typeof AdminAdminProfileRoute
   '/admin/students': typeof AdminAdminStudentsRouteWithChildren
+  '/admin/students-overview': typeof AdminAdminStudentsOverviewRoute
   '/receipts/$id': typeof AuthenticatedReceiptsIdRoute
   '/reports/payments': typeof AuthenticatedReportsPaymentsRoute
   '/cashier/collections': typeof CashierCashierCollectionsRoute
@@ -322,6 +331,7 @@ export interface FileRoutesById {
   '/_admin/admin/parents': typeof AdminAdminParentsRoute
   '/_admin/admin/profile': typeof AdminAdminProfileRoute
   '/_admin/admin/students': typeof AdminAdminStudentsRouteWithChildren
+  '/_admin/admin/students-overview': typeof AdminAdminStudentsOverviewRoute
   '/_authenticated/receipts/$id': typeof AuthenticatedReceiptsIdRoute
   '/_authenticated/reports/payments': typeof AuthenticatedReportsPaymentsRoute
   '/_cashier/cashier/collections': typeof CashierCashierCollectionsRoute
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/admin/parents'
     | '/admin/profile'
     | '/admin/students'
+    | '/admin/students-overview'
     | '/receipts/$id'
     | '/reports/payments'
     | '/cashier/collections'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/admin/parents'
     | '/admin/profile'
     | '/admin/students'
+    | '/admin/students-overview'
     | '/receipts/$id'
     | '/reports/payments'
     | '/cashier/collections'
@@ -432,6 +444,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/parents'
     | '/_admin/admin/profile'
     | '/_admin/admin/students'
+    | '/_admin/admin/students-overview'
     | '/_authenticated/receipts/$id'
     | '/_authenticated/reports/payments'
     | '/_cashier/cashier/collections'
@@ -624,6 +637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReceiptsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_admin/admin/students-overview': {
+      id: '/_admin/admin/students-overview'
+      path: '/admin/students-overview'
+      fullPath: '/admin/students-overview'
+      preLoaderRoute: typeof AdminAdminStudentsOverviewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/students': {
       id: '/_admin/admin/students'
       path: '/admin/students'
@@ -736,6 +756,7 @@ interface AdminRouteChildren {
   AdminAdminParentsRoute: typeof AdminAdminParentsRoute
   AdminAdminProfileRoute: typeof AdminAdminProfileRoute
   AdminAdminStudentsRoute: typeof AdminAdminStudentsRouteWithChildren
+  AdminAdminStudentsOverviewRoute: typeof AdminAdminStudentsOverviewRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminSchoolsIdRoute: typeof AdminAdminSchoolsIdRoute
   AdminAdminSchoolsNewRoute: typeof AdminAdminSchoolsNewRoute
@@ -752,6 +773,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminParentsRoute: AdminAdminParentsRoute,
   AdminAdminProfileRoute: AdminAdminProfileRoute,
   AdminAdminStudentsRoute: AdminAdminStudentsRouteWithChildren,
+  AdminAdminStudentsOverviewRoute: AdminAdminStudentsOverviewRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
   AdminAdminSchoolsIdRoute: AdminAdminSchoolsIdRoute,
   AdminAdminSchoolsNewRoute: AdminAdminSchoolsNewRoute,
