@@ -61,6 +61,8 @@ router.get("/", async (req) => {
 
 // GET /admin-schools/:id
 router.get("/:id", async (req, params) => {
+  // intercept "overview" before the :id matcher
+  if (params.id === "overview") return overviewHandler(req);
   const ctx = await requireAuth(req);
   if (ctx instanceof Response) return ctx;
   if (!hasAnyRole(ctx, ["super_admin"])) {
