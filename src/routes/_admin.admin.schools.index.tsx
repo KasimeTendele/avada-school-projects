@@ -104,7 +104,7 @@ function SchoolsList() {
         )}
         <div className="space-y-3">
           {items.map((s) => (
-            <div key={s.id} className="relative rounded-3xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-elevated)]">
+            <div key={s.id} className="rounded-3xl bg-card p-4 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-elevated)]">
               <Link
                 to="/admin/schools/$id"
                 params={{ id: s.id }}
@@ -121,12 +121,24 @@ function SchoolsList() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="truncate text-base font-extrabold leading-tight">{s.name}</h3>
-                    <span className={cn(
-                      "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                      s.status === "active" ? "bg-tint-mint text-tint-mint-foreground" : "bg-secondary text-muted-foreground",
-                    )}>
-                      {s.status === "active" ? "Actif" : "Inactif"}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className={cn(
+                        "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+                        s.status === "active" ? "bg-tint-mint text-tint-mint-foreground" : "bg-secondary text-muted-foreground",
+                      )}>
+                        {s.status === "active" ? "Actif" : "Inactif"}
+                      </span>
+                      {isSuper && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setToDelete(s); }}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                          aria-label={`Supprimer ${s.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                     {s.city && (
@@ -148,16 +160,6 @@ function SchoolsList() {
                 <ChevronRight className="h-4 w-4 text-primary" />
               </div>
               </Link>
-              {isSuper && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setToDelete(s); }}
-                  className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10 text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
-                  aria-label={`Supprimer ${s.name}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
             </div>
           ))}
         </div>
