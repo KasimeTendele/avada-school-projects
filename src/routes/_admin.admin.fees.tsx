@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Combobox } from "@/components/Combobox";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,7 +109,6 @@ function FeesPage() {
 
 function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void }) {
   const [category, setCategory] = useState<string>(FEE_CATEGORIES[0]);
-  const [customCat, setCustomCat] = useState("");
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<"CDF" | "USD">("CDF");
@@ -117,9 +117,25 @@ function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void
   const [studentId, setStudentId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [academicYear, setAcademicYear] = useState(`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`);
+  const [rate, setRate] = useState<number>(() => {
+    if (typeof window === "undefined") return 2400;
+    const v = Number(localStorage.getItem("usd_cdf_rate"));
+    return v > 0 ? v : 2400;
+  });
+  const updateRate = (v: number) => {
+    setRate(v);
+    if (typeof window !== "undefined" && v > 0) {
+      localStorage.setItem("usd_cdf_rate", String(v));
+    }
+  };
 
-  const isCustom = category === "__other__";
-  const finalCategory = isCustom ? customCat.trim() : category;
+  const finalCategory = category.trim();
+  const converted =
+    amount > 0 && rate > 0
+      ? currency === "USD"
+        ? `${formatNumber(Math.round(amount * rate))} CDF`
+        : `${formatNumber(Math.round((amount / rate) * 100) / 100)} USD`
+      : null;
 
   const classesQ = useQuery({
     queryKey: ["classes-pick", schoolId],
@@ -161,14 +177,12 @@ function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void
 
       <div className="space-y-1.5">
         <Label>Catégorie</Label>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {FEE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            <SelectItem value="__other__">Autre (préciser)…</SelectItem>
-          </SelectContent>
-        </Select>
-        {isCustom && <Input placeholder="Nom de la catégorie" value={customCat} onChange={(e) => setCustomCat(e.target.value)} />}
+        <Combobox
+          value={category}
+          onChange={setCategory}
+          options={FEE_CATEGORIES.map((c) => ({ value: c, label: c }))}
+          placeholder="Choisir ou saisir une catégorie…"
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -190,6 +204,22 @@ function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void
         </div>
       </div>
 
+      <div className="rounded-xl border bg-muted/30 p-3 space-y-2">
+        <Label className="text-xs">Taux de conversion (1 USD = ? CDF)</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            value={rate}
+            onChange={(e) => updateRate(Number(e.target.value))}
+            className="h-9"
+          />
+          <span className="text-xs text-muted-foreground whitespace-nowrap">FC / USD</span>
+        </div>
+        {converted && (
+          <p className="text-xs text-muted-foreground">≈ {converted}</p>
+        )}
+      </div>
+
       <div className="space-y-1.5">
         <Label>Portée</Label>
         <Select value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
@@ -205,19 +235,25 @@ function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void
       {scope === "CLASS" && (
         <div className="space-y-1.5">
           <Label>Classe</Label>
-          <Select value={classId} onValueChange={setClassId}>
-            <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-            <SelectContent>{(classesQ.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
+          <Combobox
+            value={classId}
+            onChange={setClassId}
+            options={(classesQ.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
+            placeholder="Rechercher une classe…"
+            allowCustom={false}
+          />
         </div>
       )}
       {scope === "STUDENT" && (
         <div className="space-y-1.5">
           <Label>Élève</Label>
-          <Select value={studentId} onValueChange={setStudentId}>
-            <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-            <SelectContent>{(studentsQ.data?.items ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</SelectItem>)}</SelectContent>
-          </Select>
+          <Combobox
+            value={studentId}
+            onChange={setStudentId}
+            options={(studentsQ.data?.items ?? []).map((s) => ({ value: s.id, label: `${s.first_name} ${s.last_name}` }))}
+            placeholder="Rechercher un élève…"
+            allowCustom={false}
+          />
         </div>
       )}
 
