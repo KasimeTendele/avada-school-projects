@@ -110,7 +110,7 @@ function FeesPage() {
 function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void }) {
   const [category, setCategory] = useState<string>(FEE_CATEGORIES[0]);
   const [label, setLabel] = useState("");
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<number | "">("");
   const [currency, setCurrency] = useState<"CDF" | "USD">("CDF");
   const [scope, setScope] = useState<"SCHOOL" | "CLASS" | "STUDENT">("SCHOOL");
   const [classId, setClassId] = useState("");
@@ -130,11 +130,12 @@ function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void
   };
 
   const finalCategory = category.trim();
+  const amountNum = typeof amount === "number" ? amount : 0;
   const converted =
-    amount > 0 && rate > 0
+    amountNum > 0 && rate > 0
       ? currency === "USD"
-        ? `${formatNumber(Math.round(amount * rate))} CDF`
-        : `${formatNumber(Math.round((amount / rate) * 100) / 100)} USD`
+        ? `${formatNumber(Math.round(amountNum * rate))} CDF`
+        : `${formatNumber(Math.round((amountNum / rate) * 100) / 100)} USD`
       : null;
 
   const classesQ = useQuery({
@@ -154,14 +155,14 @@ function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void
     mutationFn: async () => {
       if (!finalCategory) throw new Error("Catégorie requise");
       if (!label.trim()) throw new Error("Motif requis");
-      if (amount <= 0) throw new Error("Montant invalide");
+      if (amountNum <= 0) throw new Error("Montant invalide");
       if (scope === "CLASS" && !classId) throw new Error("Classe requise");
       if (scope === "STUDENT" && !studentId) throw new Error("Élève requis");
       return apiFetch("/fees", {
         method: "POST",
         body: JSON.stringify({
           school_id: schoolId, scope, label: label.trim(), fee_type: finalCategory,
-          amount, currency, due_date: dueDate || undefined, academic_year: academicYear || undefined,
+          amount: amountNum, currency, due_date: dueDate || undefined, academic_year: academicYear || undefined,
           class_id: scope === "CLASS" ? classId : undefined,
           student_id: scope === "STUDENT" ? studentId : undefined,
         }),
@@ -193,7 +194,12 @@ function NewFeeForm({ schoolId, onDone }: { schoolId: string; onDone: () => void
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Montant</Label>
-          <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
+          <Input
+            type="number"
+            value={amount}
+            placeholder="Saisir le montant"
+            onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))}
+          />
         </div>
         <div className="space-y-1.5">
           <Label>Devise</Label>
