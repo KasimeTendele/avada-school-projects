@@ -42,6 +42,7 @@ function ParentsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 25;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-parents", search],
@@ -59,6 +60,40 @@ function ParentsPage() {
     () => items.slice((safePage - 1) * pageSize, safePage * pageSize),
     [items, safePage, pageSize],
   );
+
+  const allOnPageSelected = pageItems.length > 0 && pageItems.every((p) => selected.has(p.id));
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleAllOnPage() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageItems.forEach((p) => next.delete(p.id));
+      else pageItems.forEach((p) => next.add(p.id));
+      return next;
+    });
+  }
+
+  const bulkDeleteMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = await Promise.allSettled(
+        ids.map((id) => apiFetch(`/admin-parents/${id}`, { method: "DELETE" })),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { total: ids.length, failed };
+    },
+    onSuccess: ({ total, failed }) => {
+      qc.invalidateQueries({ queryKey: ["admin-parents"] });
+      setSelected(new Set());
+      if (failed === 0) toast.success(`${total} parent(s) supprimé(s)`);
+      else toast.warning(`${total - failed}/${total} supprimé(s), ${failed} échec(s)`);
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
 
   return (
     <AdminShell>
@@ -92,6 +127,35 @@ function ParentsPage() {
         <p className="mt-3 text-sm text-muted-foreground">{totalItems} parents</p>
       </section>
 
+      {selected.size > 0 && (
+        <section className="px-4 pt-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 shadow-[var(--shadow-card)]">
+            <p className="text-sm font-bold text-destructive">{selected.size} parent(s) sélectionné(s)</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="rounded-2xl border border-border bg-card px-3 py-2 text-xs font-bold"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={bulkDeleteMut.isPending}
+                onClick={() => {
+                  if (!confirm(`Supprimer définitivement ${selected.size} parent(s) ? Cette action est irréversible.`)) return;
+                  bulkDeleteMut.mutate(Array.from(selected));
+                }}
+                className="flex items-center gap-2 rounded-2xl bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground disabled:opacity-60"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {bulkDeleteMut.isPending ? "Suppression…" : "Supprimer la sélection"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="px-4 pt-2 pb-6 lg:hidden">
         {isLoading && <p className="py-6 text-center text-sm text-muted-foreground">Chargement…</p>}
         {!isLoading && items.length === 0 && (
@@ -103,13 +167,24 @@ function ParentsPage() {
         )}
         <div className="space-y-3">
           {pageItems.map((p) => (
-            <button
+            <div
               key={p.id}
-              type="button"
-              onClick={() => setDetailId(p.id)}
-              className="w-full rounded-3xl bg-card p-4 text-left shadow-[var(--shadow-card)] transition active:scale-[0.99] hover:bg-secondary/40"
+              className="w-full rounded-3xl bg-card p-4 text-left shadow-[var(--shadow-card)] transition hover:bg-secondary/40"
             >
               <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 shrink-0 accent-destructive"
+                  checked={selected.has(p.id)}
+                  onChange={() => toggleOne(p.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Sélectionner"
+                />
+                <button
+                  type="button"
+                  onClick={() => setDetailId(p.id)}
+                  className="flex flex-1 items-start gap-3 text-left active:scale-[0.99]"
+                >
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-tint-peach text-tint-peach-foreground">
                   {p.avatar_url
                     ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -128,8 +203,9 @@ function ParentsPage() {
                     </div>
                   )}
                 </div>
+                </button>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </section>
@@ -144,6 +220,29 @@ function ParentsPage() {
           caption={<span>{totalItems} parent{totalItems > 1 ? "s" : ""}</span>}
           empty="Aucun parent. Créez un compte ou importez depuis Excel."
           columns={[
+            {
+              key: "select",
+              header: (
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-destructive"
+                  checked={allOnPageSelected}
+                  onChange={toggleAllOnPage}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Tout sélectionner"
+                />
+              ),
+              cell: (p) => (
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-destructive"
+                  checked={selected.has(p.id)}
+                  onChange={() => toggleOne(p.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Sélectionner"
+                />
+              ),
+            },
             {
               key: "name",
               header: "Parent",
