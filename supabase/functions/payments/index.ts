@@ -44,6 +44,20 @@ router.get("/", async (req) => {
   return paginated(data ?? [], params.page, params.limit, count ?? 0);
 });
 
+// GET /payments/:id — fetch one payment with its receipt (used for polling)
+router.get("/:id", async (req, params) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  const { data, error } = await ctx.client
+    .from("payments")
+    .select("*, receipts(*)")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (error) return errors.internal(error.message);
+  if (!data) return errors.notFound("Payment not found");
+  return ok(data);
+});
+
 interface InitiateBody {
   fee_id?: string;
   student_id?: string;
