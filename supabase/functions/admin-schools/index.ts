@@ -153,6 +153,68 @@ router.patch("/:id", async (req, params) => {
   return ok(data, 200, "Updated");
 });
 
+// DELETE /admin-schools/:id -> supprime l'école et ses données associées
+// (super_admin uniquement). Supprime également les comptes admin liés.
+router.delete("/:id", async (req, params) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  if (!hasAnyRole(ctx, ["super_admin"])) {
+    return errors.scopeForbidden("Super admin role required");
+  }
+  const admin = adminClient();
+  const schoolId = params.id;
+
+  const { data: school } = await admin
+    .from("schools").select("id, name").eq("id", schoolId).maybeSingle();
+  if (!school) return errors.notFound("École introuvable");
+
+  // 1) Récupérer les admins (admin_schools)
+  const { data: links } = await admin
+    .from("admin_schools").select("user_id").eq("school_id", schoolId);
+  const adminUserIds = (links ?? []).map((l: any) => l.user_id as string);
+
+  // 2) Récupérer les élèves pour purger parent_students + paiements/reçus
+  const { data: studentRows } = await admin
+    .from("students").select("id").eq("school_id", schoolId);
+  const studentIds = (studentRows ?? []).map((s: any) => s.id as string);
+
+  // 3) Récupérer les paiements pour purger les reçus
+  const { data: paymentRows } = await admin
+    .from("payments").select("id").eq("school_id", schoolId);
+  const paymentIds = (paymentRows ?? []).map((p: any) => p.id as string);
+
+  // Purge en cascade manuelle (pas de FK ON DELETE CASCADE)
+  if (paymentIds.length > 0) {
+    await admin.from("receipts").delete().in("payment_id", paymentIds);
+  }
+  await admin.from("payments").delete().eq("school_id", schoolId);
+  if (studentIds.length > 0) {
+    await admin.from("parent_students").delete().in("student_id", studentIds);
+  }
+  await admin.from("fees").delete().eq("school_id", schoolId);
+  await admin.from("students").delete().eq("school_id", schoolId);
+  await admin.from("classes").delete().eq("school_id", schoolId);
+  await admin.from("options").delete().eq("school_id", schoolId);
+  await admin.from("sections").delete().eq("school_id", schoolId);
+  await admin.from("admin_schools").delete().eq("school_id", schoolId);
+
+  // 4) Supprimer les comptes admin liés à cette école
+  for (const uid of adminUserIds) {
+    await admin.from("user_roles").delete().eq("user_id", uid);
+    await admin.from("notification_preferences").delete().eq("user_id", uid);
+    await admin.from("user_activity").delete().eq("user_id", uid);
+    await admin.from("push_tokens").delete().eq("user_id", uid);
+    await admin.from("profiles").delete().eq("id", uid);
+    try { await admin.auth.admin.deleteUser(uid); } catch (_) { /* ignore */ }
+  }
+
+  // 5) Supprimer l'école
+  const { error: delErr } = await admin.from("schools").delete().eq("id", schoolId);
+  if (delErr) return errors.internal(delErr.message);
+
+  return ok({ id: schoolId, deleted_admins: adminUserIds.length }, 200, "École supprimée");
+});
+
 async function overviewHandler(req: Request): Promise<Response> {
   const ctx = await requireAuth(req);
   if (ctx instanceof Response) return ctx;
