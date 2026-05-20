@@ -584,6 +584,16 @@ function StudentDrawer({
     onError: (e) => toast.error((e as Error).message),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: () => apiFetch(`/students/${student.id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success("Élève supprimé");
+      qc.invalidateQueries({ queryKey: ["admin-students"] });
+      onClose();
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
@@ -672,6 +682,20 @@ function StudentDrawer({
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-3xl bg-primary py-3.5 text-sm font-extrabold text-primary-foreground shadow-[var(--shadow-card)]"
         >
           <LinkIcon className="h-4 w-4" /> Lier un parent existant
+        </button>
+
+        <button
+          type="button"
+          disabled={deleteMut.isPending}
+          onClick={() => {
+            const name = `${student.last_name ?? ""} ${student.first_name ?? ""}`.trim();
+            if (confirm(`Supprimer définitivement l'élève ${name} ?\n\nCela retire ses paiements, reçus, frais individuels et liens parents.`)) {
+              deleteMut.mutate();
+            }
+          }}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-3xl border border-destructive bg-card py-3 text-sm font-extrabold text-destructive shadow-[var(--shadow-card)] disabled:opacity-60"
+        >
+          <Trash2 className="h-4 w-4" /> {deleteMut.isPending ? "Suppression…" : "Supprimer l'élève"}
         </button>
       </div>
 

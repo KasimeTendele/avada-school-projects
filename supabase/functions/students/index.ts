@@ -383,4 +383,40 @@ router.put("/:id", async (req, params) => {
   return ok(data, 200, "Student updated");
 });
 
+// DELETE /students/:id
+router.delete("/:id", async (req, params) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  if (!hasAnyRole(ctx, ["admin", "super_admin"])) {
+    return errors.scopeForbidden("Admin role required");
+  }
+  const admin = adminClient();
+  const { data: existing } = await admin
+    .from("students")
+    .select("id, school_id, first_name, last_name")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!existing) return errors.notFound("Élève introuvable");
+  if (!(await canManageSchool(ctx, existing.school_id))) {
+    return errors.scopeForbidden("Pas votre école");
+  }
+
+  // Nettoyer les dépendances (pas de FK ON DELETE CASCADE en base)
+  // 1) Reçus liés via paiements de l'élève
+  const { data: pays } = await admin.from("payments").select("id").eq("student_id", params.id);
+  const payIds = (pays ?? []).map((p: any) => p.id);
+  if (payIds.length) {
+    await admin.from("receipts").delete().in("payment_id", payIds);
+    await admin.from("payments").delete().in("id", payIds);
+  }
+  // 2) Frais propres à l'élève
+  await admin.from("fees").delete().eq("student_id", params.id).eq("scope", "STUDENT");
+  // 3) Liens parents
+  await admin.from("parent_students").delete().eq("student_id", params.id);
+  // 4) L'élève
+  const { error } = await admin.from("students").delete().eq("id", params.id);
+  if (error) return errors.internal(error.message);
+  return ok({ success: true }, 200, `Élève ${existing.first_name} ${existing.last_name} supprimé`);
+});
+
 Deno.serve((req) => router.handle(req));

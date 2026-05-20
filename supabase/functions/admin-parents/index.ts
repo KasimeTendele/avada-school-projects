@@ -770,4 +770,58 @@ router.get("/:id", async (req, params) => {
   return ok({ profile, children, roles, account });
 });
 
+// DELETE /admin-parents/:id  -> supprime le compte parent et toutes ses dépendances
+router.delete("/:id", async (req, params) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  if (!hasAnyRole(ctx, ["admin", "super_admin"])) {
+    return errors.scopeForbidden("Admin role required");
+  }
+  const admin = adminClient();
+  const isSuper = ctx.roles.includes("super_admin");
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id, full_name, primary_school_id")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!profile) return errors.notFound("Parent introuvable");
+
+  // Scope : super_admin OK; admin doit gérer l'école primaire OU au moins une école d'un enfant lié.
+  if (!isSuper) {
+    const { data: my } = await admin
+      .from("admin_schools").select("school_id").eq("user_id", ctx.userId);
+    const mySchools = new Set((my ?? []).map((r: any) => r.school_id));
+    let allowed = profile.primary_school_id ? mySchools.has(profile.primary_school_id) : false;
+    if (!allowed) {
+      const { data: links } = await admin
+        .from("parent_students")
+        .select("students!inner(school_id)")
+        .eq("parent_user_id", params.id);
+      (links ?? []).forEach((l: any) => {
+        if (l.students?.school_id && mySchools.has(l.students.school_id)) allowed = true;
+      });
+    }
+    if (!allowed) return errors.scopeForbidden("Pas votre parent");
+  }
+
+  // Nettoyer les dépendances (pas de FK ON DELETE CASCADE)
+  await admin.from("parent_students").delete().eq("parent_user_id", params.id);
+  await admin.from("user_roles").delete().eq("user_id", params.id);
+  await admin.from("notification_preferences").delete().eq("user_id", params.id);
+  await admin.from("notifications").delete().eq("user_id", params.id);
+  await admin.from("push_tokens").delete().eq("user_id", params.id);
+  await admin.from("user_activity").delete().eq("user_id", params.id);
+  await admin.from("profiles").delete().eq("id", params.id);
+
+  // Supprimer le compte auth
+  try {
+    await admin.auth.admin.deleteUser(params.id);
+  } catch (e) {
+    return errors.internal(`Suppression auth: ${(e as Error).message}`);
+  }
+
+  return ok({ success: true }, 200, `${profile.full_name ?? "Parent"} supprimé`);
+});
+
 Deno.serve((req) => router.handle(req));

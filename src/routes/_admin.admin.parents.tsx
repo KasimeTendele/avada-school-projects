@@ -286,6 +286,16 @@ function ParentDetailDrawer({ parentId, onClose }: { parentId: string; onClose: 
     queryFn: () => apiFetch<ParentDetail>(`/admin-parents/${parentId}`),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: () => apiFetch(`/admin-parents/${parentId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success("Parent supprimé");
+      qc.invalidateQueries({ queryKey: ["admin-parents"] });
+      onClose();
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
   function fmtDate(s: string | null | undefined) {
     if (!s) return "—";
     try { return new Date(s).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" }); } catch { return s; }
@@ -338,6 +348,20 @@ function ParentDetailDrawer({ parentId, onClose }: { parentId: string; onClose: 
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-primary bg-card py-2.5 text-xs font-extrabold text-primary shadow-[var(--shadow-card)]"
             >
               ✏️ Modifier les informations
+            </button>
+
+            <button
+              type="button"
+              disabled={deleteMut.isPending}
+              onClick={() => {
+                const name = data.profile.full_name ?? "ce parent";
+                if (confirm(`Supprimer définitivement ${name} ?\n\nCela retire son compte de connexion, ses liens avec les élèves et toutes ses notifications.`)) {
+                  deleteMut.mutate();
+                }
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive bg-card py-2.5 text-xs font-extrabold text-destructive shadow-[var(--shadow-card)] disabled:opacity-60"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> {deleteMut.isPending ? "Suppression…" : "Supprimer le parent"}
             </button>
 
             {/* Identité */}
