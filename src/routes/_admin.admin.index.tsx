@@ -294,24 +294,28 @@ function AdminHome() {
           </h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <KpiCard
+              to={isSuper ? "/admin/schools" : undefined}
               tint="bg-tint-sky" iconColor="text-tint-sky-foreground"
               icon={<GraduationCap className="h-5 w-5" />}
               value={schoolsCount}
               label="Écoles" hint="Dans votre périmètre"
             />
             <KpiCard
+              to={isSuper ? "/admin/users" : undefined}
               tint="bg-tint-lavender" iconColor="text-tint-lavender-foreground"
               icon={<Users className="h-5 w-5" />}
               value={usersCount}
               label="Utilisateurs" hint="Comptes administrés"
             />
             <KpiCard
+              to={isSuper ? "/admin/students-overview" : "/admin/students"}
               tint="bg-tint-mint" iconColor="text-tint-mint-foreground"
               icon={<UserRoundCheck className="h-5 w-5" />}
               value={studentsCount}
               label="Élèves" hint="Effectif total suivi"
             />
             <KpiCard
+              to={isSuper ? "/admin/users" : undefined}
               tint="bg-tint-peach" iconColor="text-tint-peach-foreground"
               icon={<Building2 className="h-5 w-5" />}
               value={cashiersCount}
@@ -515,12 +519,13 @@ function QuickLink({ to, tint, iconColor, icon, label }: {
   );
 }
 
-function KpiCard({ tint, iconColor, icon, value, label, hint }: {
+function KpiCard({ tint, iconColor, icon, value, label, hint, to }: {
   tint: string; iconColor: string; icon: React.ReactNode;
   value: number | string; label: string; hint?: string;
+  to?: "/admin/schools" | "/admin/users" | "/admin/students-overview" | "/admin/students";
 }) {
-  return (
-    <div className="rounded-3xl border border-border/60 bg-card p-4 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-md">
+  const inner = (
+    <>
       <span className={cn("mb-3 flex h-10 w-10 items-center justify-center rounded-2xl", tint, iconColor)}>
         {icon}
       </span>
@@ -529,6 +534,15 @@ function KpiCard({ tint, iconColor, icon, value, label, hint }: {
       </p>
       <p className="mt-2 text-sm font-extrabold text-foreground">{label}</p>
       {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
+    </>
+  );
+  const className = "block text-left rounded-3xl border border-border/60 bg-card p-4 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-md hover:border-primary/40";
+  if (to) {
+    return <Link to={to} className={className}>{inner}</Link>;
+  }
+  return (
+    <div className={className}>
+      {inner}
     </div>
   );
 }
