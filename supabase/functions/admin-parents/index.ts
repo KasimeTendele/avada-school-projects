@@ -727,9 +727,9 @@ router.get("/:id", async (req, params) => {
 
   // Scope admin
   if (!isSuper) {
-    const { data: my } = await admin.from("admin_schools").select("school_id").eq("user_id", ctx.userId);
-    const mySchools = new Set((my ?? []).map((r: any) => r.school_id));
-    const allowed = schoolIds.some((s) => mySchools.has(s));
+    const mySchools = await getManagedSchoolIds(ctx);
+    const allowed = (!!profile.primary_school_id && mySchools.has(profile.primary_school_id)) ||
+      schoolIds.some((s) => mySchools.has(s));
     if (!allowed) return errors.scopeForbidden("Pas votre parent");
   }
 
@@ -801,9 +801,7 @@ router.delete("/:id", async (req, params) => {
 
   // Scope : super_admin OK; admin doit gérer l'école primaire OU au moins une école d'un enfant lié.
   if (!isSuper) {
-    const { data: my } = await admin
-      .from("admin_schools").select("school_id").eq("user_id", ctx.userId);
-    const mySchools = new Set((my ?? []).map((r: any) => r.school_id));
+    const mySchools = await getManagedSchoolIds(ctx);
     let allowed = profile.primary_school_id ? mySchools.has(profile.primary_school_id) : false;
     if (!allowed) {
       const { data: links } = await admin
