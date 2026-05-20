@@ -38,7 +38,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <MobileShell desktopFull>
-      <div className="lg:flex lg:min-h-screen">
+      <div className="font-inter lg:flex lg:min-h-screen">
         <DesktopSideNav
           brand={isSuper ? "Super Admin" : "Admin École"}
           subtitle="Tableau de bord"
