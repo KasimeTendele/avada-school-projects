@@ -68,6 +68,20 @@ function UsersList() {
 
   const items = data?.items ?? [];
 
+  const ROLE_ORDER = ["super_admin", "admin", "cashier", "parent", "inspector"];
+  const grouped = useMemo(() => {
+    const map = new Map<string, UserRow[]>();
+    for (const u of items) {
+      const key = u.role || "user";
+      const arr = map.get(key) ?? [];
+      arr.push(u);
+      map.set(key, arr);
+    }
+    const knownOrdered = ROLE_ORDER.filter((r) => map.has(r)).map((r) => [r, map.get(r)!] as const);
+    const others = [...map.entries()].filter(([k]) => !ROLE_ORDER.includes(k));
+    return [...knownOrdered, ...others];
+  }, [items]);
+
   return (
     <AdminShell>
       <AdminHero
@@ -116,49 +130,71 @@ function UsersList() {
       {/* List */}
       <section className="px-4 pt-2 pb-6">
         {isLoading && <p className="py-6 text-center text-sm text-muted-foreground">Chargement…</p>}
-        <div className="space-y-3">
-          {items.map((u) => (
-            <Link
-              key={u.id}
-              to="/admin/users/$id"
-              params={{ id: u.id }}
-              className="block rounded-3xl bg-card p-4 shadow-[var(--shadow-card)]"
-            >
-              <div className="flex items-start gap-3">
-                <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", roleIconBg(u.role))}>
-                  {roleIcon(u.role)}
+        <div className="space-y-6">
+          {grouped.map(([roleKey, users]) => (
+            <div key={roleKey}>
+              <div className="mb-2 flex items-center justify-between px-1">
+                <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide">
+                  <span className={cn("flex h-7 w-7 items-center justify-center rounded-xl", roleIconBg(roleKey))}>
+                    {roleIcon(roleKey)}
+                  </span>
+                  {ROLE_LABELS[roleKey] ?? roleKey}
+                </h2>
+                <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                  {users.length}
                 </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-base font-extrabold leading-tight">{u.full_name ?? "—"}</h3>
-                      <p className="truncate text-xs text-muted-foreground">{u.email ?? "—"}</p>
-                    </div>
-                    <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", ROLE_TINTS[u.role] ?? "bg-secondary text-muted-foreground")}>
-                      {ROLE_LABELS[u.role] ?? u.role}
-                    </span>
-                  </div>
-                  {u.school_name && (
-                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                      <GraduationCap className="h-3.5 w-3.5" /> {u.school_name}
-                    </p>
-                  )}
-                  <div className="mt-1 flex items-center justify-end">
-                    <span className={cn(
-                      "flex items-center gap-1 text-[11px] font-semibold",
-                      u.status === "active" ? "text-success" : "text-muted-foreground",
-                    )}>
-                      <span className={cn("h-1.5 w-1.5 rounded-full", u.status === "active" ? "bg-success" : "bg-muted-foreground")} />
-                      {u.status === "active" ? "Actif" : u.status === "suspended" ? "Suspendu" : "Inactif"}
-                    </span>
-                  </div>
-                </div>
               </div>
-              <p className="mt-3 border-t border-border pt-2 text-xs text-muted-foreground">
-                Dernière connexion : {relativeTime(u.last_login_at)}
-              </p>
-            </Link>
+              <div className="space-y-3">
+                {users.map((u) => (
+                  <Link
+                    key={u.id}
+                    to="/admin/users/$id"
+                    params={{ id: u.id }}
+                    className="block rounded-3xl bg-card p-4 shadow-[var(--shadow-card)]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", roleIconBg(u.role))}>
+                        {roleIcon(u.role)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-base font-extrabold leading-tight">{u.full_name ?? "—"}</h3>
+                            <p className="truncate text-xs text-muted-foreground">{u.email ?? "—"}</p>
+                          </div>
+                          <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", ROLE_TINTS[u.role] ?? "bg-secondary text-muted-foreground")}>
+                            {ROLE_LABELS[u.role] ?? u.role}
+                          </span>
+                        </div>
+                        {u.school_name && (
+                          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <GraduationCap className="h-3.5 w-3.5" /> {u.school_name}
+                          </p>
+                        )}
+                        <div className="mt-1 flex items-center justify-end">
+                          <span className={cn(
+                            "flex items-center gap-1 text-[11px] font-semibold",
+                            u.status === "active" ? "text-success" : "text-muted-foreground",
+                          )}>
+                            <span className={cn("h-1.5 w-1.5 rounded-full", u.status === "active" ? "bg-success" : "bg-muted-foreground")} />
+                            {u.status === "active" ? "Actif" : u.status === "suspended" ? "Suspendu" : "Inactif"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="mt-3 border-t border-border pt-2 text-xs text-muted-foreground">
+                      Dernière connexion : {relativeTime(u.last_login_at)}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
+          {!isLoading && items.length === 0 && (
+            <p className="rounded-3xl bg-card p-8 text-center text-sm text-muted-foreground shadow-[var(--shadow-card)]">
+              Aucun utilisateur à afficher.
+            </p>
+          )}
         </div>
       </section>
 
