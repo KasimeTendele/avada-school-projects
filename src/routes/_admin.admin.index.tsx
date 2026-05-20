@@ -294,24 +294,28 @@ function AdminHome() {
           </h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <KpiCard
+              to={isSuper ? "/admin/schools" : undefined}
               tint="bg-tint-sky" iconColor="text-tint-sky-foreground"
               icon={<GraduationCap className="h-5 w-5" />}
               value={schoolsCount}
               label="Écoles" hint="Dans votre périmètre"
             />
             <KpiCard
+              to={isSuper ? "/admin/users" : undefined}
               tint="bg-tint-lavender" iconColor="text-tint-lavender-foreground"
               icon={<Users className="h-5 w-5" />}
               value={usersCount}
               label="Utilisateurs" hint="Comptes administrés"
             />
             <KpiCard
+              to={isSuper ? "/admin/students-overview" : "/admin/students"}
               tint="bg-tint-mint" iconColor="text-tint-mint-foreground"
               icon={<UserRoundCheck className="h-5 w-5" />}
               value={studentsCount}
               label="Élèves" hint="Effectif total suivi"
             />
             <KpiCard
+              to={isSuper ? "/admin/users" : undefined}
               tint="bg-tint-peach" iconColor="text-tint-peach-foreground"
               icon={<Building2 className="h-5 w-5" />}
               value={cashiersCount}
