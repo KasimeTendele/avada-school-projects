@@ -92,6 +92,7 @@ function StudentsPage() {
   const [activeStudent, setActiveStudent] = useState<StudentRow | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-students", schoolId, search, page, pageSize],
@@ -109,6 +110,41 @@ function StudentsPage() {
   const items = data?.items ?? [];
   const totalItems = data?.totalItems ?? items.length;
   const totalPages = data?.totalPages ?? 1;
+
+  const canBulkDelete = isSuper || isAdmin;
+  const allOnPageSelected = items.length > 0 && items.every((s) => selected.has(s.id));
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleAllOnPage() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) items.forEach((s) => next.delete(s.id));
+      else items.forEach((s) => next.add(s.id));
+      return next;
+    });
+  }
+
+  const bulkDeleteMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = await Promise.allSettled(
+        ids.map((id) => apiFetch(`/students/${id}`, { method: "DELETE" })),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { total: ids.length, failed };
+    },
+    onSuccess: ({ total, failed }) => {
+      qc.invalidateQueries({ queryKey: ["admin-students"] });
+      setSelected(new Set());
+      if (failed === 0) toast.success(`${total} élève(s) supprimé(s)`);
+      else toast.warning(`${total - failed}/${total} supprimé(s), ${failed} échec(s)`);
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
 
   return (
     <AdminShell>
@@ -144,6 +180,35 @@ function StudentsPage() {
         <p className="mt-3 text-sm text-muted-foreground">{totalItems} élèves</p>
       </section>
 
+      {canBulkDelete && selected.size > 0 && (
+        <section className="px-4 pt-3">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 shadow-[var(--shadow-card)]">
+            <p className="text-sm font-bold text-destructive">{selected.size} élève(s) sélectionné(s)</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="rounded-2xl border border-border bg-card px-3 py-2 text-xs font-bold"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={bulkDeleteMut.isPending}
+                onClick={() => {
+                  if (!confirm(`Supprimer définitivement ${selected.size} élève(s) ? Cette action est irréversible.`)) return;
+                  bulkDeleteMut.mutate(Array.from(selected));
+                }}
+                className="flex items-center gap-2 rounded-2xl bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground disabled:opacity-60"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {bulkDeleteMut.isPending ? "Suppression…" : "Supprimer la sélection"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="px-4 pt-2 pb-6 lg:hidden">
         {isLoading && <p className="py-6 text-center text-sm text-muted-foreground">Chargement…</p>}
         {!isLoading && items.length === 0 && (
@@ -155,11 +220,25 @@ function StudentsPage() {
         )}
         <div className="space-y-2">
           {items.map((s) => (
-            <button
+            <div
               key={s.id}
-              onClick={() => setActiveStudent(s)}
-              className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left shadow-[var(--shadow-card)] active:scale-[0.99] transition"
+              className="flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left shadow-[var(--shadow-card)] transition"
             >
+              {canBulkDelete && (
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 accent-destructive"
+                  checked={selected.has(s.id)}
+                  onChange={() => toggleOne(s.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Sélectionner"
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => setActiveStudent(s)}
+                className="flex flex-1 items-center gap-3 text-left active:scale-[0.99] transition"
+              >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-tint-sky text-tint-sky-foreground font-bold">
                 {s.photo_url
                   ? <img src={s.photo_url} alt="" className="h-full w-full object-cover" />
@@ -172,7 +251,8 @@ function StudentsPage() {
                   {s.class ? ` · ${s.class.name}` : ""}
                 </p>
               </div>
-            </button>
+              </button>
+            </div>
           ))}
         </div>
       </section>
@@ -187,6 +267,29 @@ function StudentsPage() {
           caption={<span>{items.length} élève{items.length > 1 ? "s" : ""}</span>}
           empty="Aucun élève. Importez votre liste depuis un fichier Excel."
           columns={[
+            ...(canBulkDelete ? [{
+              key: "select",
+              header: (
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-destructive"
+                  checked={allOnPageSelected}
+                  onChange={toggleAllOnPage}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Tout sélectionner"
+                />
+              ) as any,
+              cell: (s: StudentRow) => (
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-destructive"
+                  checked={selected.has(s.id)}
+                  onChange={() => toggleOne(s.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Sélectionner"
+                />
+              ),
+            }] : []),
             {
               key: "name",
               header: "Élève",
