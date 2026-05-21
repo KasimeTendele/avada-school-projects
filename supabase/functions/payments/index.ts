@@ -58,6 +58,30 @@ router.get("/:id", async (req, params) => {
   return ok(data);
 });
 
+// POST /payments/:id/cancel — parent annule un paiement encore PENDING
+router.post("/:id/cancel", async (req, params) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  const admin = adminClient();
+  const { data: payment } = await admin
+    .from("payments")
+    .select("id, status, initiated_by")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (!payment) return errors.notFound("Payment not found");
+  if (payment.initiated_by !== ctx.userId && !hasAnyRole(ctx, ["cashier", "admin", "super_admin"])) {
+    return errors.scopeForbidden();
+  }
+  if (payment.status === "COMPLETED") {
+    return errors.validation("Paiement déjà confirmé, impossible d'annuler.");
+  }
+  if (payment.status !== "PENDING") {
+    return ok({ id: payment.id, status: payment.status });
+  }
+  await admin.from("payments").update({ status: "FAILED" }).eq("id", payment.id);
+  return ok({ id: payment.id, status: "FAILED" }, 200, "Paiement annulé");
+});
+
 interface InitiateBody {
   fee_id?: string;
   student_id?: string;
