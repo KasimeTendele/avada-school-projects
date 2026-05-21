@@ -101,7 +101,7 @@ export function AvadaPaySheet({
       } catch {
         /* ignore transient errors */
       }
-      if (Date.now() - start > 5 * 60 * 1000) {
+      if (Date.now() - start > 2 * 60 * 1000) {
         toast.error("Temps écoulé. Vérifiez votre paiement plus tard.");
         setWaiting(null);
         setLoading(false);
