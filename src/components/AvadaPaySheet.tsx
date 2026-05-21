@@ -117,6 +117,21 @@ export function AvadaPaySheet({
 
   if (!context) return null;
 
+  const handleCancel = async () => {
+    if (!waiting) return;
+    const id = waiting.paymentId;
+    setWaiting(null);
+    setLoading(false);
+    try {
+      await apiFetch(`/payments/${id}/cancel`, { method: "POST" });
+      toast.success("Paiement annulé.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Impossible d'annuler.";
+      toast.error(msg);
+    }
+    onOpenChange(false);
+  };
+
   const handlePay = async () => {
     if (method === "MOBILE_MONEY") {
       const normalized = normalizePhone(phone);
@@ -318,6 +333,16 @@ export function AvadaPaySheet({
                 ? "Traitement…"
                 : `Payer ${formatNumber(context.amount)} ${context.currency}`}
           </Button>
+          {waiting && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              className="mt-2 h-11 w-full rounded-xl border-2 text-sm font-bold"
+            >
+              Annuler le paiement
+            </Button>
+          )}
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             {waiting
               ? "Validez la transaction sur votre téléphone (code PIN Mobile Money)."
