@@ -7,10 +7,96 @@ import {
   initiateC2B,
   normalizePhone,
   PROVIDERS,
+  requestStatus,
   type ProviderName,
 } from "../_shared/avadapay.ts";
 
 const router = new Router("/payments");
+
+// Map AvadaPay numeric status → our payment_status enum.
+// 2=success, 3=failed, 4=cancelled are final.
+function avadaStatusToFinal(n: number | undefined): "COMPLETED" | "FAILED" | null {
+  if (n === 2) return "COMPLETED";
+  if (n === 3 || n === 4) return "FAILED";
+  return null;
+}
+
+// Reconcile a PENDING MOBILE_MONEY payment by querying AvadaPay /status.
+// Returns the updated payment row (with receipts).
+async function reconcilePending(paymentId: string) {
+  const admin = adminClient();
+  const { data: payment } = await admin
+    .from("payments")
+    .select("id, status, method, amount, currency, initiated_by, school_id, student_id, fee_id")
+    .eq("id", paymentId)
+    .maybeSingle();
+  if (!payment) return null;
+  if (payment.status !== "PENDING" || payment.method !== "MOBILE_MONEY") return payment;
+
+  let result;
+  try {
+    result = await requestStatus(paymentId);
+  } catch (e) {
+    console.warn("[payments.reconcile] status request failed", paymentId, e);
+    return payment;
+  }
+  const final = avadaStatusToFinal(result.data?.status as number | undefined);
+  if (!final) return payment;
+
+  if (final === "FAILED") {
+    // Atomic claim
+    const { data: claimed } = await admin
+      .from("payments")
+      .update({ status: "FAILED" })
+      .eq("id", payment.id)
+      .eq("status", "PENDING")
+      .select()
+      .maybeSingle();
+    if (claimed && payment.initiated_by) {
+      await admin.from("notifications").insert({
+        user_id: payment.initiated_by,
+        type: "PAYMENT",
+        title: "Paiement échoué",
+        message: `Votre paiement de ${payment.amount} ${payment.currency} a échoué.`,
+        data: { paymentId: payment.id },
+      });
+    }
+    return claimed ?? payment;
+  }
+
+  // COMPLETED — atomic claim, then create receipt + notification.
+  const txnId = (result.data?.transaction_id as string | undefined) ?? null;
+  const { data: claimed } = await admin
+    .from("payments")
+    .update({
+      status: "COMPLETED",
+      paid_at: new Date().toISOString(),
+      ...(txnId ? { reference: txnId } : {}),
+    })
+    .eq("id", payment.id)
+    .eq("status", "PENDING")
+    .select()
+    .maybeSingle();
+  if (!claimed) return payment; // someone else (callback) won the race
+
+  const receiptNumber = `R-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const { data: receipt } = await admin
+    .from("receipts")
+    .insert({ payment_id: payment.id, receipt_number: receiptNumber, pdf_url: null })
+    .select()
+    .single();
+
+  if (payment.initiated_by) {
+    await admin.from("notifications").insert({
+      user_id: payment.initiated_by,
+      type: "PAYMENT",
+      title: "Paiement confirmé",
+      message: `Votre paiement de ${payment.amount} ${payment.currency} a été reçu.`,
+      data: { paymentId: payment.id, receiptId: receipt?.id },
+    });
+  }
+  return claimed;
+}
 
 // GET /payments — scoped automatically by RLS via ctx.client
 router.get("/", async (req) => {
@@ -48,6 +134,28 @@ router.get("/", async (req) => {
 router.get("/:id", async (req, params) => {
   const ctx = await requireAuth(req);
   if (ctx instanceof Response) return ctx;
+  // Fallback reconciliation: if PENDING mobile-money, ask AvadaPay for status
+  // (covers cases where the callback never arrives).
+  try {
+    await reconcilePending(params.id);
+  } catch (e) {
+    console.warn("[payments.get] reconcile failed", e);
+  }
+  const { data, error } = await ctx.client
+    .from("payments")
+    .select("*, receipts(*)")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (error) return errors.internal(error.message);
+  if (!data) return errors.notFound("Payment not found");
+  return ok(data);
+});
+
+// POST /payments/:id/verify — manual force-check against AvadaPay
+router.post("/:id/verify", async (req, params) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  await reconcilePending(params.id);
   const { data, error } = await ctx.client
     .from("payments")
     .select("*, receipts(*)")
