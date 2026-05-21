@@ -127,3 +127,29 @@ export async function initiateC2B(p: InitC2BParams): Promise<{
   });
   return { ok: res.ok, status: res.status, data, signature, body };
 }
+
+// Query the status of a previously initiated transaction.
+// Doc: POST https://api.avadapay.tech/{public_id}/status
+// Response includes a numeric `status` field:
+//   -1 undefined | 0 initiated | 1 in progress | 2 success | 3 failed
+//   4 cancelled | 5 cancelled partially | 6 in_transit
+export async function requestStatus(orderId: string): Promise<{
+  ok: boolean;
+  httpStatus: number;
+  data: Record<string, unknown> & { status?: number; transaction_id?: string };
+}> {
+  const body: Record<string, unknown> = {
+    merchant_id: AVADAPAY_MERCHANT_ID,
+    order_id: orderId,
+  };
+  const signature = await signPayload(body);
+  const payload = { ...body, signature };
+  const res = await fetch(`${AVADAPAY_BASE}/${AVADAPAY_API_KEY}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  console.log("AvadaPay status", { orderId, httpStatus: res.status, response: data });
+  return { ok: res.ok, httpStatus: res.status, data: data as { status?: number; transaction_id?: string } };
+}
