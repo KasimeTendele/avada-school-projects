@@ -89,6 +89,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => {
+    // Default theme = light; only change if user picked something in Settings.
+    try {
+      const saved = window.localStorage.getItem("avada.theme") as "light" | "dark" | "system" | null;
+      const t = saved ?? "light";
+      const dark = t === "dark" || (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark", dark);
+    } catch {}
+  }, []);
+  useEffect(() => {
     const onError = (e: PromiseRejectionEvent | ErrorEvent) => {
       const msg =
         (e as PromiseRejectionEvent).reason?.message ??
