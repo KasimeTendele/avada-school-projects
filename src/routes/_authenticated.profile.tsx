@@ -196,6 +196,24 @@ function ProfilePage() {
           </Button>
         </div>
 
+        <h2 className="mt-8 mb-3 flex items-center gap-2 text-base font-bold">
+          <Shield className="h-5 w-5 text-primary" /> Sécurité
+        </h2>
+        <div className="space-y-4 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+          <Field label="Mot de passe actuel" icon={<Lock className="h-4 w-4" />}>
+            <Input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
+          </Field>
+          <Field label="Nouveau mot de passe (min. 8 caractères)" icon={<Lock className="h-4 w-4" />}>
+            <Input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="••••••••" autoComplete="new-password" minLength={8} />
+          </Field>
+          <Field label="Confirmer le nouveau mot de passe" icon={<Lock className="h-4 w-4" />}>
+            <Input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} placeholder="••••••••" autoComplete="new-password" minLength={8} />
+          </Field>
+          <Button className="w-full rounded-xl" onClick={onChangePassword} disabled={changingPwd}>
+            <Lock className="h-4 w-4" /> {changingPwd ? "Mise à jour…" : "Mettre à jour le mot de passe"}
+          </Button>
+        </div>
+
         <h2 className="mt-8 mb-3 text-base font-bold">Apparence</h2>
         <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
           <p className="mb-3 text-sm font-semibold">Thème de l'application</p>
