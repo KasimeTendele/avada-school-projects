@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LuCamera as Camera, LuMail as Mail, LuPhone as Phone, LuUser as User, LuLogOut as LogOut, LuCheck as Check, LuX as X, LuUserCog as UserCog } from "react-icons/lu";
+import { LuCamera as Camera, LuMail as Mail, LuPhone as Phone, LuUser as User, LuLogOut as LogOut, LuCheck as Check, LuX as X, LuUserCog as UserCog, LuLock as Lock, LuShield as Shield } from "react-icons/lu";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/profile")({
