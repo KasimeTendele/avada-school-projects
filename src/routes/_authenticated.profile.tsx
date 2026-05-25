@@ -101,6 +101,28 @@ function ProfilePage() {
     applyTheme(t);
   };
 
+  const onChangePassword = async () => {
+    if (!user) return;
+    if (!currentPwd || !newPwd || !confirmPwd) { toast.error("Tous les champs sont requis."); return; }
+    if (newPwd.length < 8) { toast.error("Le nouveau mot de passe doit faire au moins 8 caractères."); return; }
+    if (newPwd !== confirmPwd) { toast.error("Les nouveaux mots de passe ne correspondent pas."); return; }
+    setChangingPwd(true);
+    try {
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email!, password: currentPwd });
+      if (verifyErr) throw new Error("Mot de passe actuel incorrect.");
+      const { error } = await supabase.auth.updateUser({ password: newPwd });
+      if (error) throw error;
+      toast.success("Mot de passe mis à jour avec succès.");
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+    } catch (err) {
+      toast.error((err as Error).message ?? "Échec de la mise à jour du mot de passe.");
+    } finally {
+      setChangingPwd(false);
+    }
+  };
+
   return (
     <ParentShell>
       <header className="relative bg-[image:var(--gradient-primary)] px-6 pt-12 pb-16 text-primary-foreground">
