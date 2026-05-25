@@ -33,7 +33,7 @@ function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [theme, setTheme] = useState<Theme>("system");
+  const [theme, setTheme] = useState<Theme>("light");
 
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
@@ -49,7 +49,7 @@ function ProfilePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = (window.localStorage.getItem("avada.theme") as Theme | null) ?? "system";
+    const saved = (window.localStorage.getItem("avada.theme") as Theme | null) ?? "light";
     setTheme(saved);
     applyTheme(saved);
   }, []);
