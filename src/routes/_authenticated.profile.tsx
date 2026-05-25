@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LuCamera as Camera, LuMail as Mail, LuPhone as Phone, LuUser as User, LuLogOut as LogOut, LuCheck as Check, LuX as X, LuUserCog as UserCog } from "react-icons/lu";
+import { LuCamera as Camera, LuMail as Mail, LuPhone as Phone, LuUser as User, LuLogOut as LogOut, LuCheck as Check, LuX as X, LuUserCog as UserCog, LuLock as Lock, LuShield as Shield } from "react-icons/lu";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/profile")({
@@ -34,6 +34,11 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [theme, setTheme] = useState<Theme>("system");
+
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [changingPwd, setChangingPwd] = useState(false);
 
   useEffect(() => {
     setFullName(profile?.full_name ?? "");
@@ -94,6 +99,28 @@ function ProfilePage() {
     setTheme(t);
     if (typeof window !== "undefined") window.localStorage.setItem("avada.theme", t);
     applyTheme(t);
+  };
+
+  const onChangePassword = async () => {
+    if (!user) return;
+    if (!currentPwd || !newPwd || !confirmPwd) { toast.error("Tous les champs sont requis."); return; }
+    if (newPwd.length < 8) { toast.error("Le nouveau mot de passe doit faire au moins 8 caractères."); return; }
+    if (newPwd !== confirmPwd) { toast.error("Les nouveaux mots de passe ne correspondent pas."); return; }
+    setChangingPwd(true);
+    try {
+      const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email!, password: currentPwd });
+      if (verifyErr) throw new Error("Mot de passe actuel incorrect.");
+      const { error } = await supabase.auth.updateUser({ password: newPwd });
+      if (error) throw error;
+      toast.success("Mot de passe mis à jour avec succès.");
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+    } catch (err) {
+      toast.error((err as Error).message ?? "Échec de la mise à jour du mot de passe.");
+    } finally {
+      setChangingPwd(false);
+    }
   };
 
   return (
@@ -166,6 +193,24 @@ function ProfilePage() {
           </Button>
           <Button className="rounded-xl" onClick={onSave} disabled={saving}>
             <Check className="h-4 w-4" /> {saving ? "Enregistrement…" : "Enregistrer"}
+          </Button>
+        </div>
+
+        <h2 className="mt-8 mb-3 flex items-center gap-2 text-base font-bold">
+          <Shield className="h-5 w-5 text-primary" /> Sécurité
+        </h2>
+        <div className="space-y-4 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+          <Field label="Mot de passe actuel" icon={<Lock className="h-4 w-4" />}>
+            <Input type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
+          </Field>
+          <Field label="Nouveau mot de passe (min. 8 caractères)" icon={<Lock className="h-4 w-4" />}>
+            <Input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="••••••••" autoComplete="new-password" minLength={8} />
+          </Field>
+          <Field label="Confirmer le nouveau mot de passe" icon={<Lock className="h-4 w-4" />}>
+            <Input type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} placeholder="••••••••" autoComplete="new-password" minLength={8} />
+          </Field>
+          <Button className="w-full rounded-xl" onClick={onChangePassword} disabled={changingPwd}>
+            <Lock className="h-4 w-4" /> {changingPwd ? "Mise à jour…" : "Mettre à jour le mot de passe"}
           </Button>
         </div>
 
