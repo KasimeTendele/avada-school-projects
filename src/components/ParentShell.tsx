@@ -3,6 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { LuHouse as Home, LuUsers as Users, LuCreditCard as CreditCard, LuBell as Bell, LuUser as User } from "react-icons/lu";
 import { MobileShell } from "@/components/MobileShell";
 import { cn } from "@/lib/utils";
+import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 
 const tabs = [
   { to: "/home", label: "ACCUEIL", Icon: Home },
@@ -18,6 +19,7 @@ export function ParentShell({ children }: { children: ReactNode }) {
     <MobileShell>
       <div className="flex min-h-screen sm:min-h-[calc(100vh-3rem)] flex-col">
         <div className="flex-1 pb-24">{children}</div>
+        <ForcePasswordChangeDialog />
         <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-[480px] -translate-x-1/2 border-t border-border bg-card">
           <div className="grid grid-cols-5">
             {tabs.map(({ to, label, Icon }) => {
