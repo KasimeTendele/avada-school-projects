@@ -35,6 +35,11 @@ function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [theme, setTheme] = useState<Theme>("system");
 
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [changingPwd, setChangingPwd] = useState(false);
+
   useEffect(() => {
     setFullName(profile?.full_name ?? "");
     setEmail(profile?.email ?? user?.email ?? "");
