@@ -257,7 +257,7 @@ router.post("/", async (req) => {
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name, phone, role },
+    user_metadata: { full_name, phone, role, must_change_password: true },
   });
   if (createErr || !created.user) {
     const msg = createErr?.message ?? "Création échouée";

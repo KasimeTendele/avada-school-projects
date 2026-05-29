@@ -10,6 +10,7 @@ import {
 import { MobileShell } from "@/components/MobileShell";
 import { DesktopSideNav, type SideNavItem } from "@/components/DesktopSideNav";
 import { cn } from "@/lib/utils";
+import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 
 const TABS: readonly SideNavItem[] = [
   { to: "/cashier", label: "ACCUEIL", Icon: Home, exact: true },
@@ -23,6 +24,7 @@ export function CashierShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return (
     <MobileShell desktopFull>
+      <ForcePasswordChangeDialog />
       <div className="lg:flex lg:min-h-screen">
         <DesktopSideNav brand="Caisse" subtitle="Espace caissier" items={TABS} />
 

@@ -1,10 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { LuLogOut as LogOut, LuShieldCheck as ShieldCheck, LuMail as Mail, LuPhone as Phone } from "react-icons/lu";
+import { useState, type FormEvent } from "react";
+import { LuLogOut as LogOut, LuShieldCheck as ShieldCheck, LuMail as Mail, LuPhone as Phone, LuLock as Lock } from "react-icons/lu";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminHero } from "@/components/AdminHero";
 import { useAuth } from "@/lib/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { initials } from "@/lib/format";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_admin/admin/profile")({
   head: () => ({ meta: [{ title: "Profil — Administration" }] }),
@@ -12,9 +18,33 @@ export const Route = createFileRoute("/_admin/admin/profile")({
 });
 
 function AdminProfile() {
-  const { profile, signOut, roles } = useAuth();
+  const { profile, signOut, roles, user } = useAuth();
   const navigate = useNavigate();
   const onLogout = async () => { await signOut(); navigate({ to: "/login" }); };
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [changingPwd, setChangingPwd] = useState(false);
+
+  const onChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (newPwd.length < 8) return toast.error("Mot de passe : 8 caractères minimum.");
+    if (newPwd !== confirmPwd) return toast.error("Les mots de passe ne correspondent pas.");
+    if (!user?.email) return toast.error("Email introuvable.");
+    setChangingPwd(true);
+    try {
+      const { error: signErr } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPwd });
+      if (signErr) throw new Error("Mot de passe actuel incorrect.");
+      const { error } = await supabase.auth.updateUser({ password: newPwd, data: { must_change_password: false } });
+      if (error) throw error;
+      toast.success("Mot de passe mis à jour.");
+      setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
+    } catch (err) {
+      toast.error((err as Error).message ?? "Échec de la mise à jour");
+    } finally {
+      setChangingPwd(false);
+    }
+  };
 
   return (
     <AdminShell>
@@ -42,6 +72,26 @@ function AdminProfile() {
             <span className="text-sm">{profile?.phone ?? "—"}</span>
           </div>
         </div>
+        <form onSubmit={onChangePassword} className="rounded-3xl bg-card p-5 shadow-[var(--shadow-card)] space-y-3">
+          <h3 className="flex items-center gap-2 text-sm font-extrabold">
+            <Lock className="h-4 w-4 text-primary" /> Sécurité — Mot de passe
+          </h3>
+          <div className="space-y-1.5">
+            <Label htmlFor="cur-pwd">Mot de passe actuel</Label>
+            <Input id="cur-pwd" type="password" autoComplete="current-password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} required />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-pwd">Nouveau mot de passe</Label>
+            <Input id="new-pwd" type="password" autoComplete="new-password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required minLength={8} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="conf-pwd">Confirmer le mot de passe</Label>
+            <Input id="conf-pwd" type="password" autoComplete="new-password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} required minLength={8} />
+          </div>
+          <Button type="submit" disabled={changingPwd} className="w-full">
+            {changingPwd ? "Mise à jour…" : "Mettre à jour le mot de passe"}
+          </Button>
+        </form>
         <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-3xl bg-destructive/10 py-4 text-sm font-extrabold text-destructive">
           <LogOut className="h-4 w-4" /> Se déconnecter
         </button>

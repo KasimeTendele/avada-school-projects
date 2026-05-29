@@ -13,6 +13,7 @@ import { MobileShell } from "@/components/MobileShell";
 import { DesktopSideNav, type SideNavItem } from "@/components/DesktopSideNav";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import { ForcePasswordChangeDialog } from "@/components/ForcePasswordChangeDialog";
 
 const SUPER_ADMIN_TABS: readonly SideNavItem[] = [
   { to: "/admin", label: "ACCUEIL", Icon: Home, exact: true },
@@ -38,6 +39,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <MobileShell desktopFull>
+      <ForcePasswordChangeDialog />
       <div className="font-inter lg:flex lg:min-h-screen">
         <DesktopSideNav
           brand={isSuper ? "Super Admin" : "Admin École"}
