@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import {
   LuMail as Mail,
   LuPhone as Phone,
@@ -28,6 +28,9 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface CashierDash {
   today: { total: number; transactionsCount: number; currency: string };
@@ -62,6 +65,30 @@ function CashierProfile() {
   const [prefs, setPrefs] = useState<Record<string, boolean>>(
     Object.fromEntries(PREFS.map((p) => [p.key, true])),
   );
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [changingPwd, setChangingPwd] = useState(false);
+
+  const onChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (newPwd.length < 8) return toast.error("Mot de passe : 8 caractères minimum.");
+    if (newPwd !== confirmPwd) return toast.error("Les mots de passe ne correspondent pas.");
+    if (!user?.email) return toast.error("Email introuvable.");
+    setChangingPwd(true);
+    try {
+      const { error: signErr } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPwd });
+      if (signErr) throw new Error("Mot de passe actuel incorrect.");
+      const { error } = await supabase.auth.updateUser({ password: newPwd, data: { must_change_password: false } });
+      if (error) throw error;
+      toast.success("Mot de passe mis à jour.");
+      setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
+    } catch (err) {
+      toast.error((err as Error).message ?? "Échec de la mise à jour");
+    } finally {
+      setChangingPwd(false);
+    }
+  };
 
   const dashQ = useQuery({
     enabled: !!schoolId,
@@ -217,6 +244,30 @@ function CashierProfile() {
           >
             <LogOut className="h-4 w-4" /> Déconnexion
           </button>
+        </section>
+
+        <section className="mt-6">
+          <Card title="Sécurité — Mot de passe" actionIcon={<Lock className="h-4 w-4" />}>
+            <form onSubmit={onChangePassword} className="space-y-3 p-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="cur-pwd">Mot de passe actuel</Label>
+                <Input id="cur-pwd" type="password" autoComplete="current-password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} required />
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-pwd">Nouveau mot de passe</Label>
+                  <Input id="new-pwd" type="password" autoComplete="new-password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required minLength={8} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="conf-pwd">Confirmer</Label>
+                  <Input id="conf-pwd" type="password" autoComplete="new-password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} required minLength={8} />
+                </div>
+              </div>
+              <Button type="submit" disabled={changingPwd} className="w-full md:w-auto">
+                {changingPwd ? "Mise à jour…" : "Mettre à jour le mot de passe"}
+              </Button>
+            </form>
+          </Card>
         </section>
       </main>
     </CashierShell>
