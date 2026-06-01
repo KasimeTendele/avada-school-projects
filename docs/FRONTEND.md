@@ -21,7 +21,7 @@
 | Formulaires | `react-hook-form` + `zod` |
 | Icônes | `lucide-react` |
 
-Le build/typecheck/lint est géré automatiquement par Lovable. En local :
+Le build/typecheck/lint est géré automatiquement par Avadaschool. En local :
 `bun install` puis `bun run dev`.
 
 ---
@@ -205,7 +205,7 @@ C'est la **seule** exception à la règle « tout passe par l'API ».
 
 ## 11. Lint / typecheck / build
 
-Géré par Lovable. En local :
+Géré par Avadaschool. En local :
 
 ```bash
 bun run dev       # dev server
