@@ -108,10 +108,8 @@ function ProfilePage() {
     if (newPwd !== confirmPwd) { toast.error("Les nouveaux mots de passe ne correspondent pas."); return; }
     setChangingPwd(true);
     try {
-      const { error: verifyErr } = await supabase.auth.signInWithPassword({ email: user.email!, password: currentPwd });
-      if (verifyErr) throw new Error("Mot de passe actuel incorrect.");
-      const { error } = await supabase.auth.updateUser({ password: newPwd });
-      if (error) throw error;
+      const { changePassword } = await import("@/features/auth/password");
+      await changePassword({ current_password: currentPwd, new_password: newPwd });
       toast.success("Mot de passe mis à jour avec succès.");
       setCurrentPwd("");
       setNewPwd("");

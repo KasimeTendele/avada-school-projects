@@ -9,6 +9,7 @@ interface RegisterBody { email?: string; password?: string; full_name?: string; 
 interface ForgotBody { email?: string; redirect_to?: string }
 interface ResetBody { access_token?: string; refresh_token?: string; new_password?: string }
 interface RefreshBody { refresh_token?: string }
+interface ChangePasswordBody { current_password?: string; new_password?: string }
 
 router.post("/login", async (req) => {
   const body = (await req.json().catch(() => ({}))) as LoginBody;
@@ -130,6 +131,37 @@ router.post("/refresh", async (req) => {
     expiresIn: data.session.expires_in,
     expiresAt: data.session.expires_at,
   });
+});
+
+// POST /auth/change-password
+// Auth: Bearer required. Vérifie l'ancien mot de passe puis met à jour
+// le mot de passe et désactive le flag must_change_password.
+router.post("/change-password", async (req) => {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return errors.unauthorized("Missing bearer token");
+  const body = (await req.json().catch(() => ({}))) as ChangePasswordBody;
+  if (!body.current_password || !body.new_password) {
+    return errors.validation("current_password and new_password are required");
+  }
+  if (body.new_password.length < 8) {
+    return errors.validation("new_password must be at least 8 characters");
+  }
+  const admin = adminClient();
+  const { data: userData, error: userErr } = await admin.auth.getUser(authHeader.slice(7));
+  if (userErr || !userData.user?.email) return errors.unauthorized("Invalid token");
+  // Re-vérifier l'ancien mot de passe via signIn (sans toucher la session courante).
+  const verifier = userClient(null);
+  const { error: signErr } = await verifier.auth.signInWithPassword({
+    email: userData.user.email,
+    password: body.current_password,
+  });
+  if (signErr) return errors.unauthorized("Current password is incorrect");
+  const { error: updErr } = await admin.auth.admin.updateUserById(userData.user.id, {
+    password: body.new_password,
+    user_metadata: { ...(userData.user.user_metadata ?? {}), must_change_password: false },
+  });
+  if (updErr) return errors.validation(updErr.message);
+  return ok({ updated: true }, 200, "Password updated");
 });
 
 Deno.serve((req) => router.handle(req));
