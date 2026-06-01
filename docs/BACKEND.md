@@ -226,10 +226,77 @@ Toutes les tables `public.*` ont **RLS activé** + politiques scopées par rôle
 
 ### 6.6 Students (`/students`, `/students-by-parent`)
 
-| GET | `/students?schoolId=&classId=&search=&page=&limit=` | admin / cashier / super_admin | — | liste paginée |
-| POST | `/students` | admin / cashier | corps élève | crée |
-| GET / PUT / DELETE | `/students/:id` | idem | — | CRUD |
-| GET | `/students-by-parent` | parent | — | enfants liés au parent connecté |
+Tous les chemins ci-dessous renvoient l'enveloppe standard
+`{ success, message, data, meta }` (voir § 3). Les listes paginées renvoient
+`data` au format `paginated` (`items`, `page`, `limit`, `totalItems`, …).
+
+#### GET `/students`
+- **Rôles** : `admin`, `cashier`, `super_admin`. RLS filtre déjà à l'école.
+- **Query** : `page` (def. 1), `limit` (def. 20, max 100), `search`
+  (matricule, prénom, nom), `sort` (ex: `last_name:asc`), filtres
+  `schoolId`, `classId`, `sectionId`, `optionId`.
+- **200** : `paginated<Student>` — chaque item inclut `school`, `class`,
+  `section`, `option` joints.
+- **Erreurs** : `UNAUTHORIZED`, `SCOPE_FORBIDDEN`, `INTERNAL_ERROR`.
+
+#### POST `/students`
+- **Rôles** : `admin`, `cashier`, `super_admin` (de l'école visée).
+- **Body** :
+  ```json
+  {
+    "school_id": "uuid",         // requis
+    "first_name": "string",      // requis
+    "last_name":  "string",      // requis
+    "post_name":  "string?",
+    "matricule":  "string?",
+    "birth_date": "YYYY-MM-DD?",
+    "birth_place": "string?",
+    "gender":     "M|F?",
+    "enrollment_date": "YYYY-MM-DD?",
+    "class_id":   "uuid?",
+    "section_id": "uuid?",
+    "option_id":  "uuid?",
+    "photo_url":  "string?",
+    "physical_address": "string?"
+  }
+  ```
+- **201** : `{ ...student }`.
+- **Erreurs** : `VALIDATION_ERROR` (champs manquants),
+  `SCOPE_FORBIDDEN` (école hors périmètre), `CONFLICT` (matricule en
+  doublon dans l'école).
+
+#### POST `/students/import`
+- **Rôles** : `admin`, `cashier`, `super_admin`.
+- **Body** : `{ school_id: uuid, students: Array<StudentBody> }`.
+- **200** : `{ created: number, failed: Array<{ row, reason }> }`.
+- **Erreurs** : `VALIDATION_ERROR`, `SCOPE_FORBIDDEN`.
+
+#### GET `/students/:id`
+- **Rôles** : portée RLS (admin/cashier/super_admin de l'école, parent de
+  l'élève).
+- **200** : `Student` avec relations.
+- **Erreurs** : `NOT_FOUND` (inexistant ou hors portée).
+
+#### PUT `/students/:id`
+- **Rôles** : `admin`, `cashier`, `super_admin` (de l'école de l'élève).
+- **Body** : tout sous-ensemble du corps `POST /students` (champs
+  partiels).
+- **200** : élève mis à jour.
+- **Erreurs** : `VALIDATION_ERROR`, `SCOPE_FORBIDDEN`, `NOT_FOUND`.
+
+#### DELETE `/students/:id`
+- **Rôles** : `admin`, `super_admin` uniquement (le cashier ne peut pas
+  supprimer).
+- **200** : `{ deleted: true, id }`.
+- **Erreurs** : `SCOPE_FORBIDDEN`, `NOT_FOUND`, `CONFLICT` (paiements
+  rattachés).
+
+#### GET `/students-by-parent`
+- **Rôles** : `parent` (le `userId` est lu du JWT).
+- **Query** : aucune.
+- **200** : `{ items: Array<Student & { relationship: string }> }` — les
+  élèves liés via `parent_students`, avec `school` et `class` joints.
+- **Erreurs** : `UNAUTHORIZED`.
 
 ### 6.7 Classes (`/classes`)
 
@@ -238,9 +305,54 @@ Toutes les tables `public.*` ont **RLS activé** + politiques scopées par rôle
 
 ### 6.8 Fees (`/fees`, `/fees-by-parent`)
 
-| GET | `/fees?schoolId=&classId=&studentId=&scope=` | admin / cashier / super_admin | — | liste |
-| POST / PUT / DELETE | `/fees[/:id]` | admin / cashier | corps fee | CRUD |
-| GET | `/fees-by-parent` | parent | — | frais à payer pour ses enfants (avec solde restant) |
+#### GET `/fees`
+- **Rôles** : tous les rôles authentifiés (RLS filtre la portée).
+- **Query** : `page`, `limit`, `search` (label / fee_type), `sort`,
+  filtres `schoolId`, `classId`, `studentId`, `scope`
+  (`SCHOOL|CLASS|STUDENT`), `academic_year`.
+- **200** : `paginated<Fee>` — chaque item inclut `school` et `class`
+  joints.
+- **Erreurs** : `UNAUTHORIZED`, `INTERNAL_ERROR`.
+
+#### GET `/fees/by-school/:schoolId`
+- **Rôles** : `super_admin`, `admin` (école liée via `admin_schools`),
+  `cashier` (`primary_school_id == schoolId`).
+- **200** : `{ items: Array<Fee & { paid: number, remaining: number,
+  class?, student? }>, total }` — agrège les `payments` `COMPLETED`.
+- **Erreurs** : `SCOPE_FORBIDDEN` (autre école), `INTERNAL_ERROR`.
+
+#### POST `/fees`
+- **Rôles** : `admin`, `cashier`, `super_admin` (école dans le périmètre).
+- **Body** :
+  ```json
+  {
+    "school_id": "uuid",                   // requis
+    "scope":     "SCHOOL|CLASS|STUDENT",   // requis
+    "label":     "string",                 // requis
+    "fee_type":  "string",                 // requis
+    "amount":    123.45,                   // > 0
+    "currency":  "CDF|USD",                // def. CDF
+    "due_date":  "YYYY-MM-DD?",
+    "academic_year": "string?",
+    "class_id":   "uuid?",  // requis si scope=CLASS
+    "student_id": "uuid?"   // requis si scope=STUDENT
+  }
+  ```
+- **201** : `Fee` créé. Effet de bord : insertion de
+  `notifications` (type `FEE`) pour les parents des élèves concernés
+  dont `notification_preferences.payments != false`.
+- **Erreurs** : `VALIDATION_ERROR`, `SCOPE_FORBIDDEN`.
+
+> ⚠️ `PUT /fees/:id` et `DELETE /fees/:id` ne sont pas encore exposés.
+> Toute modification se fait côté DB ou à ajouter dans cette fonction si
+> nécessaire (mêmes règles de rôle que `POST`).
+
+#### GET `/fees-by-parent`
+- **Rôles** : `parent`.
+- **200** : `{ items: Array<Fee & { student_id, student_name, paid,
+  remaining }> }` — uniquement les frais avec `remaining > 0` pour les
+  enfants du parent connecté.
+- **Erreurs** : `UNAUTHORIZED`.
 
 ### 6.9 Collections (`/admin-collections`)
 
@@ -248,22 +360,124 @@ Toutes les tables `public.*` ont **RLS activé** + politiques scopées par rôle
 
 ### 6.10 Payments (`/payments`, `/payments-callback`)
 
-| POST | `/payments/initiate` | parent / cashier | `{ fee_id, student_id, amount, method, currency }` | crée payment PENDING + lien AvadaPay |
-| GET | `/payments?status=&studentId=&schoolId=` | scoped | — | liste |
-| GET | `/payments/:id` | scoped | — | détail |
-| POST | `/payments-callback` | **public (webhook AvadaPay)** — `verify_jwt = false` | signature dans header | met à jour le statut. **Vérifier la signature** avant toute écriture. |
+#### GET `/payments`
+- **Rôles** : tous (RLS scope par rôle ; côté code, un `parent` est
+  re-filtré sur ses enfants via `parent_students`).
+- **Query** : `page`, `limit`, `search` (`reference`), `sort`, filtres
+  `status` (`PENDING|COMPLETED|FAILED`), `studentId`, `schoolId`,
+  `feeId`, `method`.
+- **200** : `paginated<Payment>`.
+- **Erreurs** : `UNAUTHORIZED`, `INTERNAL_ERROR`.
+
+#### GET `/payments/:id`
+- **Rôles** : portée RLS. Déclenche une **réconciliation** AvadaPay si le
+  paiement est `PENDING` Mobile Money (idempotent).
+- **200** : `Payment & { receipts: Receipt[] }`.
+- **Erreurs** : `NOT_FOUND`, `INTERNAL_ERROR`.
+
+#### POST `/payments/initiate`
+- **Rôles** : `parent` (uniquement pour ses enfants), `cashier`, `admin`,
+  `super_admin` (pour l'école).
+- **Body** :
+  ```json
+  {
+    "fee_id":     "uuid",                              // requis
+    "student_id": "uuid",                              // requis
+    "amount":     50000,                               // > 0
+    "method":     "MOBILE_MONEY|CASH|BANK_TRANSFER",   // requis
+    "phone":      "string?",                           // requis si MOBILE_MONEY
+    "provider":   "ORANGE|AIRTEL|MPESA|AFRIMONEY?",    // auto-détecté si absent
+    "reference":  "string?"
+  }
+  ```
+- **200** :
+  - `MOBILE_MONEY` → `{ payment, redirect_url?, instructions?, provider }`
+    + le paiement est créé `PENDING` puis confirmé par
+      `/payments-callback`.
+  - `CASH` / `BANK_TRANSFER` → `{ payment }` directement `COMPLETED` (le
+    reçu est généré dans la foulée).
+- **Erreurs** : `VALIDATION_ERROR` (champs / téléphone / opérateur),
+  `SCOPE_FORBIDDEN` (enfant d'un autre parent), `NOT_FOUND` (`fee_id`),
+  `INTERNAL_ERROR` (échec AvadaPay).
+
+#### POST `/payments/:id/verify`
+- **Rôles** : portée RLS. Force une réconciliation AvadaPay puis renvoie
+  l'état mis à jour.
+- **200** : `Payment & { receipts: Receipt[] }`.
+- **Erreurs** : `NOT_FOUND`, `INTERNAL_ERROR`.
+
+#### POST `/payments/:id/cancel`
+- **Rôles** : créateur du paiement, `cashier`, `admin`, `super_admin`.
+- **200** : `{ id, status: "FAILED" }`. Idempotent si déjà `FAILED`.
+- **Erreurs** : `NOT_FOUND`, `SCOPE_FORBIDDEN`,
+  `VALIDATION_ERROR` (« déjà confirmé, impossible d'annuler »).
+
+#### POST `/payments-callback`
+- **Auth** : **public** (`verify_jwt = false`). Endpoint webhook
+  AvadaPay.
+- **Body** : `{ order_id, status, transaction_id?, amount?, currency?,
+  signature, ... }`.
+- **Sécurité** : `signature` est vérifiée via `signPayload` (HMAC) avant
+  toute écriture.
+- **Réponses** (format **brut**, pas l'enveloppe standard car
+  l'expéditeur est externe) :
+  - `200 { success: true, message }` : traité (`Already processed`,
+    `Marked failed`, `Ignored (non-final status)`, `Payment completed`).
+  - `400` : JSON invalide / `order_id` manquant.
+  - `401` : signature invalide.
+  - `404` : `payment` introuvable.
+  - `405` : méthode autre que `POST`.
+- **Effet** : sur succès → met le `payment` en `COMPLETED`, crée un
+  `receipt` (numéro `R-<ts>-<rand>`) et envoie une notification
+  `PAYMENT` à `initiated_by`. Sur échec → `FAILED` + notification.
 
 ### 6.11 Receipts (`/receipts`)
 
-| GET | `/receipts?studentId=` | scoped (parent / cashier / admin) | — | liste |
-| GET | `/receipts/:id` | scoped | — | détail + PDF |
-| POST | `/receipts` (interne) | cashier / admin | `{ payment_id }` | génère reçu + numéro |
+> La fonction `receipts` n'expose pour l'instant **que** la résolution
+> d'URL PDF d'un reçu existant. Les reçus sont créés automatiquement par
+> `payments-callback` et par `POST /payments/initiate` (méthodes
+> immédiates `CASH` / `BANK_TRANSFER`).
+
+#### GET `/receipts/:id/pdf`
+- **Rôles** : portée RLS (`parent` propriétaire, `cashier` / `admin` de
+  l'école, `super_admin`).
+- **200** : `{ url: string, receiptNumber: string }`. Si `pdf_url` est
+  vide, une URL placeholder est générée puis persistée (à remplacer par
+  un vrai PDF en production).
+- **Erreurs** : `NOT_FOUND` (« Receipt not found or out of scope »),
+  `INTERNAL_ERROR`.
+
+> Pour lister les reçus d'un parent ou d'un élève, passer par
+> `GET /payments?studentId=...` et lire `payments[].receipts` (les reçus
+> sont inclus dans `GET /payments/:id`).
 
 ### 6.12 Notifications (`/notifications`)
 
-| GET | `/notifications?onlyUnread=&page=&limit=` | bearer | — | notifs de l'utilisateur |
-| PATCH | `/notifications/:id/read` | bearer | — | marque comme lu |
-| POST | `/notifications/preferences` | bearer | flags | met à jour les préférences |
+#### GET `/notifications`
+- **Rôles** : tout utilisateur authentifié. Renvoie uniquement ses
+  propres notifications (`user_id = auth.uid()`, garanti par RLS).
+- **Query** : `page` (def. 1), `limit` (def. 20, max 100), `search`
+  (titre / message), `sort` (def. `created_at:desc`), filtres `read`
+  (`true|false`), `type` (`PAYMENT|FEE|EVENT|SYSTEM`).
+- **200** : `paginated<Notification>`.
+- **Erreurs** : `UNAUTHORIZED`, `INTERNAL_ERROR`.
+
+#### PATCH `/notifications/:id/read`
+- **Rôles** : propriétaire de la notification.
+- **200** : `{ notification: Notification }` (avec `read=true`,
+  `read_at=now()`).
+- **Erreurs** : `NOT_FOUND` (autre utilisateur ou inexistante),
+  `INTERNAL_ERROR`.
+
+#### PATCH `/notifications/read-all`
+- **Rôles** : utilisateur connecté.
+- **200** : `{ updated: number }` — nombre de notifs marquées comme lues.
+- **Erreurs** : `UNAUTHORIZED`, `INTERNAL_ERROR`.
+
+> La gestion des préférences (`notification_preferences`) et des
+> tokens push (`push_tokens`) n'a pas encore d'endpoint dédié — l'app
+> écrit directement via Supabase (à migrer vers une route HTTP, voir
+> [`MIGRATION.md`](./MIGRATION.md)).
 
 ### 6.13 Dashboards
 
