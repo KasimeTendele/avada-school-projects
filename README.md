@@ -1,7 +1,7 @@
 # Avada School
 
 Plateforme de gestion scolaire (parents, élèves, frais, paiements) déployée
-sur **Lovable Cloud** (Supabase + Edge Functions, frontend TanStack Start).
+sur **Avadaschool Cloud** (Supabase + Edge Functions, frontend TanStack Start).
 
 ## Documentation
 
@@ -31,4 +31,4 @@ bun install
 bun run dev
 ```
 
-Lovable gère build, lint, typecheck et déploiement automatiquement.
+Avadaschool gère build, lint, typecheck et déploiement automatiquement.

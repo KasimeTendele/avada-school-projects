@@ -488,7 +488,7 @@ Tous les chemins ci-dessous renvoient l'enveloppe standard
 
 ## 7. Secrets
 
-Configurés dans **Lovable Cloud → Secrets** (jamais committés).
+Configurés dans **Avadaschool Cloud → Secrets** (jamais committés).
 
 | Nom | Usage |
 |---|---|
@@ -498,7 +498,7 @@ Configurés dans **Lovable Cloud → Secrets** (jamais committés).
 | `AVADAPAY_API_KEY` | Auth API AvadaPay |
 | `AVADAPAY_MERCHANT_ID` | Identifiant marchand |
 | `AVADAPAY_SECRET_KEY` | Vérification signature webhook |
-| `LOVABLE_API_KEY` | Lovable AI Gateway (si IA activée) |
+| `LOVABLE_API_KEY` | Avadaschool AI Gateway (si IA activée) |
 
 ---
 
