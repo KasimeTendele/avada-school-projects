@@ -33,10 +33,8 @@ function AdminProfile() {
     if (!user?.email) return toast.error("Email introuvable.");
     setChangingPwd(true);
     try {
-      const { error: signErr } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPwd });
-      if (signErr) throw new Error("Mot de passe actuel incorrect.");
-      const { error } = await supabase.auth.updateUser({ password: newPwd, data: { must_change_password: false } });
-      if (error) throw error;
+      const { changePassword } = await import("@/features/auth/password");
+      await changePassword({ current_password: currentPwd, new_password: newPwd });
       toast.success("Mot de passe mis à jour.");
       setCurrentPwd(""); setNewPwd(""); setConfirmPwd("");
     } catch (err) {
