@@ -60,6 +60,23 @@ function prettyPhone(local: string): string {
   return `${p.slice(0, 2)} ${p.slice(2, 5)} ${p.slice(5)}`;
 }
 
+// Formate le numéro selon les règles AvadaPay par opérateur :
+//   Orange / Africell → "0XXXXXXXXX"   (10 chiffres, préfixe 0)
+//   Airtel            → "XXXXXXXXX"    (9 chiffres, pas de 0)
+//   Vodacom           → "243XXXXXXXXX" (12 chiffres, indicatif pays)
+function formatPhoneForProvider(rawPhone: string, provider: ProviderName): string {
+  const local = normalizePhone(rawPhone);
+  switch (provider) {
+    case "ORANGE":
+    case "AFRICELL":
+      return `0${local}`;
+    case "AIRTEL":
+      return local;
+    case "VODACOM":
+      return `243${local}`;
+  }
+}
+
 export function AvadaPaySheet({
   open,
   onOpenChange,
@@ -171,8 +188,14 @@ export function AvadaPaySheet({
             student_id: context.studentId,
             amount: context.amount,
             method: method === "MOBILE_MONEY" ? "MOBILE_MONEY" : "CARD",
-            reference: method === "MOBILE_MONEY" ? normalizePhone(phone) : `CARD-${card.number.slice(-4)}`,
-            phone: method === "MOBILE_MONEY" ? normalizePhone(phone) : undefined,
+            reference:
+              method === "MOBILE_MONEY" && provider
+                ? formatPhoneForProvider(phone, provider)
+                : `CARD-${card.number.slice(-4)}`,
+            phone:
+              method === "MOBILE_MONEY" && provider
+                ? formatPhoneForProvider(phone, provider)
+                : undefined,
             provider: method === "MOBILE_MONEY" ? provider : undefined,
           }),
         },
