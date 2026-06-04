@@ -52,6 +52,14 @@ function detectProvider(phone: string): ProviderName | null {
   return null;
 }
 
+// Affiche le numéro formaté en groupes lisibles : 85 123 4567
+function prettyPhone(local: string): string {
+  const p = local.slice(0, 9);
+  if (p.length <= 2) return p;
+  if (p.length <= 5) return `${p.slice(0, 2)} ${p.slice(2)}`;
+  return `${p.slice(0, 2)} ${p.slice(2, 5)} ${p.slice(5)}`;
+}
+
 export function AvadaPaySheet({
   open,
   onOpenChange,
@@ -251,7 +259,7 @@ export function AvadaPaySheet({
               <Input
                 id="ap-phone"
                 type="tel"
-                placeholder="85XXXXXXX, 89XXXXXXX, 97XXXXXXX…"
+                placeholder="Ex. 0851234567, +243 85 123 4567, 851234567"
                 value={phone}
                 onChange={(e) => {
                   setPhone(e.target.value);
@@ -260,11 +268,29 @@ export function AvadaPaySheet({
                 className="mt-1 h-11 rounded-xl border-border"
               />
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                Orange : 80, 84, 85, 89 · Airtel : 97, 98, 99 · Vodacom : 81, 82, 83, 86 · Africell : 90, 91 (sans 0 devant)
+                Tous formats acceptés : avec ou sans 0, avec ou sans +243, espaces ou tirets.
               </p>
+              {phone && normalizePhone(phone).length > 0 && (
+                <div className="mt-2 flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
+                  <span className="font-mono">
+                    {prettyPhone(normalizePhone(phone)) || "—"}
+                  </span>
+                  {detectedProvider ? (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                      ✓ {PROVIDER_LABEL[detectedProvider]}
+                    </span>
+                  ) : normalizePhone(phone).length >= 2 ? (
+                    <span className="text-destructive">Opérateur inconnu</span>
+                  ) : (
+                    <span className="text-muted-foreground">Détection…</span>
+                  )}
+                </div>
+              )}
               {phone && (
                 <div className="mt-3">
-                  <Label className="text-sm font-semibold">Opérateur</Label>
+                  <Label className="text-sm font-semibold">
+                    Opérateur {detectedProvider ? "(détecté automatiquement)" : "(à sélectionner)"}
+                  </Label>
                   <div className="mt-1 grid grid-cols-2 gap-2">
                     {(Object.keys(PROVIDER_PREFIXES) as ProviderName[]).map((p) => (
                       <button
