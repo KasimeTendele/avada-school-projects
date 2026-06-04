@@ -4,6 +4,7 @@ import { ok, paginated, errors } from "../_shared/response.ts";
 import { applyFilters, applySort, parseListParams } from "../_shared/list-params.ts";
 import {
   detectProvider,
+  formatPhoneForProvider,
   initiateC2B,
   normalizePhone,
   PROVIDERS,
@@ -251,6 +252,8 @@ router.post("/initiate", async (req) => {
       ]);
     }
     const providerCfg = PROVIDERS[providerName];
+    // Format the phone exactly as AvadaPay expects for this operator.
+    const providerPhone = formatPhoneForProvider(phone, providerName);
 
     // Create PENDING payment first so we have a stable order_id
     const { data: payment, error: payErr } = await admin
@@ -263,7 +266,7 @@ router.post("/initiate", async (req) => {
         currency: fee.currency,
         method: "MOBILE_MONEY",
         status: "PENDING",
-        reference: phone,
+        reference: providerPhone,
         initiated_by: ctx.userId,
       })
       .select()
@@ -288,7 +291,7 @@ router.post("/initiate", async (req) => {
       orderId: payment.id,
       amount: Number(body.amount),
       currency: fee.currency,
-      phone,
+      phone: providerPhone,
       providerId: providerCfg.id,
       customerName,
       customerEmail: profile?.email ?? ctx.email ?? undefined,

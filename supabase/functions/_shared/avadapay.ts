@@ -35,6 +35,25 @@ export function detectProvider(phone: string): ProviderName | null {
   return null;
 }
 
+// Format the phone number exactly as each AvadaPay provider expects it.
+// Source: AvadaPay provider documentation.
+//   Orange    → must START with 0   → "0XXXXXXXXX"  (10 digits)
+//   Airtel    → must NOT start with 0 → "XXXXXXXXX" (9 digits)
+//   Vodacom   → full international    → "243XXXXXXXXX" (12 digits)
+//   Africell  → must START with 0   → "0XXXXXXXXX"  (10 digits)
+export function formatPhoneForProvider(rawPhone: string, provider: ProviderName): string {
+  const local = normalizePhone(rawPhone); // strips leading 0 / 243, returns 9-digit local
+  switch (provider) {
+    case "ORANGE":
+    case "AFRICELL":
+      return `0${local}`;
+    case "AIRTEL":
+      return local;
+    case "VODACOM":
+      return `243${local}`;
+  }
+}
+
 // Build the canonical string-to-sign in insertion order (matches AvadaPay's JS snippet)
 function buildSignString(data: Record<string, unknown>, prefix = ""): string {
   let s = "";
