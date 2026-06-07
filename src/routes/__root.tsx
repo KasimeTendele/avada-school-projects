@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth, type AppRole } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/sonner";
+import { MobileAppPrompt } from "@/components/MobileAppPrompt";
 
 import appCss from "../styles.css?url";
 import faviconUrl from "@/assets/avada-logo.png?url";
@@ -132,6 +133,7 @@ function RootComponent() {
       <AuthProvider>
         <AuthBridge />
         <Toaster position="top-center" richColors closeButton />
+        <MobileAppPrompt />
       </AuthProvider>
     </QueryClientProvider>
   );
