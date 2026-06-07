@@ -1,9 +1,15 @@
-// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually
-// or the app will break with duplicate plugins:
-//   - tanstackStart, viteReact, tailwindcss, tsConfigPaths, cloudflare (build-only),
-//     componentTagger (dev-only), VITE_* env injection, @ path alias, React/TanStack dedupe,
-//     error logger plugins, and sandbox detection (port/host/strictPort).
-// You can pass additional config via defineConfig({ vite: { ... } }) if needed.
+// Build SPA statique pour hébergement Hostinger (mutualisé).
+// - `tanstackStart.spa.enabled: true` → prérend une coquille SPA (HTML + assets)
+//   capable d'être servie par n'importe quel hébergeur statique (Apache/Nginx).
+// - `nitro: false` → désactive la sortie Cloudflare Worker / serveur Node.
+// - Le build sort dans `./dist/` (config Vite par défaut).
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-export default defineConfig();
+export default defineConfig({
+  nitro: false,
+  tanstackStart: {
+    spa: {
+      enabled: true,
+    },
+  },
+});
