@@ -1,0 +1,1 @@
+CREATE POLICY "Public read app-downloads" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'app-downloads');
