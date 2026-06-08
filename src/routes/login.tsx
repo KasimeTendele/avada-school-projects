@@ -6,7 +6,6 @@ import { MobileShell } from "@/components/MobileShell";
 import { useAuth } from "@/lib/auth-context";
 
 import onb1 from "@/assets/onboarding-1.jpg";
-import avadaLogo from "@/assets/avada-logo.png";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
