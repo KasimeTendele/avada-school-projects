@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "BUILD_STATIC=1 vite build && node scripts/postbuild-spa.mjs",
+    "build": "cross-env BUILD_STATIC=1 vite build && node scripts/postbuild-spa.mjs",
     "build:dev": "vite build --mode development",
-    "build:static": "BUILD_STATIC=1 vite build && node scripts/postbuild-spa.mjs",
+    "build:static": "cross-env BUILD_STATIC=1 vite build && node scripts/postbuild-spa.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
