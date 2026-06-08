@@ -1,27 +1,24 @@
 import { useEffect, useState } from "react";
-import { LuSmartphone, LuDownload, LuApple } from "react-icons/lu";
+import { LuSmartphone, LuDownload, LuApple, LuCircleCheck } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-const APK_URL = "https://ixtnwgkxrlukgnmdophx.supabase.co/storage/v1/object/public/app-downloads/Avadaschool.apk";
-const STORAGE_KEY = "avada.mobile-app-prompt.dismissed";
+const APK_URL = "https://median.co/share/dyaozpz#apk";
+const STORAGE_KEY = "avada.mobile-app-prompt.installed";
 
 function isAndroidPhone(): boolean {
   if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  return /Android/i.test(ua);
+  return /Android/i.test(navigator.userAgent || "");
 }
 
 function isIOS(): boolean {
   if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  return /iPhone|iPad|iPod/i.test(ua);
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 }
 
 function isMobilePhone(): boolean {
   if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  return /Android|iPhone|iPod|iPad|Mobile/i.test(ua);
+  return /Android|iPhone|iPod|iPad|Mobile/i.test(navigator.userAgent || "");
 }
 
 export function MobileAppPrompt() {
@@ -36,7 +33,11 @@ export function MobileAppPrompt() {
     return () => clearTimeout(t);
   }, []);
 
-  const dismiss = () => {
+  // Close without remembering — dialog will reappear on next visit
+  const closeOnly = () => setOpen(false);
+
+  // Remember permanently — won't show again
+  const rememberAndClose = () => {
     try {
       window.localStorage.setItem(STORAGE_KEY, "1");
     } catch {}
@@ -44,23 +45,14 @@ export function MobileAppPrompt() {
   };
 
   const onDownload = () => {
-    const a = document.createElement("a");
-    a.href = APK_URL;
-    a.download = "Avadaschool.apk";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, "1");
-    } catch {}
+    window.open(APK_URL, "_blank", "noopener,noreferrer");
   };
 
   const android = isAndroidPhone();
   const ios = isIOS();
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : dismiss())}>
+    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : closeOnly())}>
       <DialogContent className="max-w-[92vw] sm:max-w-md rounded-2xl">
         <DialogHeader className="items-center text-center">
           <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
@@ -80,17 +72,28 @@ export function MobileAppPrompt() {
 
         <div className="mt-2 flex flex-col gap-2">
           {android && (
-            <Button
-              onClick={onDownload}
-              size="lg"
-              className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              <LuDownload className="mr-2 h-5 w-5" />
-              Télécharger
-            </Button>
+            <>
+              <Button
+                onClick={onDownload}
+                size="lg"
+                className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                <LuDownload className="mr-2 h-5 w-5" />
+                Télécharger
+              </Button>
+              <Button
+                onClick={rememberAndClose}
+                variant="outline"
+                size="lg"
+                className="h-12 w-full rounded-full text-base font-medium"
+              >
+                <LuCircleCheck className="mr-2 h-5 w-5" />
+                J'ai déjà installé
+              </Button>
+            </>
           )}
           <Button
-            onClick={dismiss}
+            onClick={closeOnly}
             variant={android ? "ghost" : "default"}
             size="lg"
             className="h-12 w-full rounded-full text-base font-medium"
@@ -107,4 +110,3 @@ export function MobileAppPrompt() {
     </Dialog>
   );
 }
-
