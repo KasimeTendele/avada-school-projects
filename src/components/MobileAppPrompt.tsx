@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { LuSmartphone, LuDownload, LuApple, LuCircleCheck } from "react-icons/lu";
+import { LuSmartphone, LuApple, LuCircleCheck } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import googlePlayLogo from "@/assets/google-play-logo.png.asset.json";
 
 const APK_URL = "https://median.co/share/dyaozpz#apk";
 const STORAGE_KEY = "avada.mobile-app-prompt.installed";
@@ -78,7 +79,11 @@ export function MobileAppPrompt() {
                 size="lg"
                 className="h-12 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
               >
-                <LuDownload className="mr-2 h-5 w-5" />
+                <img
+                  src={googlePlayLogo.url}
+                  alt="Google Play"
+                  className="mr-2 h-6 w-auto rounded-sm bg-white p-0.5"
+                />
                 Télécharger
               </Button>
               <Button
