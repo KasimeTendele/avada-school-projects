@@ -6,6 +6,7 @@ import { MobileShell } from "@/components/MobileShell";
 import { useAuth } from "@/lib/auth-context";
 
 import onb1 from "@/assets/onboarding-1.jpg";
+import avadaLogo from "@/assets/avada-logo.png";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -63,17 +64,12 @@ function LoginPage() {
           <img src={onb1} alt="" className="h-full w-full object-cover" loading="eager" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/30" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex items-baseline px-5 py-3">
-              <span
-                className="text-7xl font-normal leading-none select-none text-primary"
-                style={{ textShadow: "0 4px 20px rgba(0,0,0,0.5)" }}
-              >
-                A
-              </span>
-              <span className="text-4xl font-bold italic text-white drop-shadow-lg">
-                vada<span className="font-light"> School</span>
-              </span>
-            </div>
+            <img
+              src={avadaLogo}
+              alt="Avada School"
+              className="h-20 w-auto px-5 py-3 drop-shadow-lg"
+              style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.35))" }}
+            />
           </div>
         </div>
 
