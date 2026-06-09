@@ -291,3 +291,396 @@ impayés en respectant `notification_preferences.reminders`.
 ---
 
 _Dernière mise à jour : 2026-06-09._
+
+---
+
+## 11. Exemples Postman (requêtes prêtes à l'emploi)
+
+> **Base URL** :
+> `https://ixtnwgkxrlukgnmdophx.supabase.co/functions/v1`
+>
+> Définissez dans Postman les variables d'environnement suivantes :
+>
+> | Variable        | Valeur                                                                 |
+> |-----------------|------------------------------------------------------------------------|
+> | `baseUrl`       | `https://ixtnwgkxrlukgnmdophx.supabase.co/functions/v1`                |
+> | `accessToken`   | Récupéré via `POST /auth/login` (champ `data.accessToken`)             |
+> | `refreshToken`  | Récupéré via `POST /auth/login` (champ `data.refreshToken`)            |
+>
+> Headers communs (tous les endpoints sauf `/auth/login`, `/register`,
+> `/forgot-password`, `/reset-password`, `/refresh`, `/payments-callback`) :
+>
+> ```
+> Authorization: Bearer {{accessToken}}
+> Content-Type: application/json
+> ```
+
+### 11.1 Auth
+
+**Login**
+```
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@avada.school",
+  "password": "MotDePasse123!"
+}
+```
+
+**Register**
+```
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "parent@example.com",
+  "password": "MotDePasse123!",
+  "full_name": "Jean Dupont",
+  "phone": "+243900000000",
+  "role": "parent"
+}
+```
+
+**Forgot password**
+```
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "parent@example.com",
+  "redirect_to": "https://avada-school-projects.lovable.app/reset-password"
+}
+```
+
+**Reset password**
+```
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "v1.MrefreshT...",
+  "new_password": "NouveauMdp123!"
+}
+```
+
+**Refresh**
+```
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{ "refresh_token": "{{refreshToken}}" }
+```
+
+**Change password** (Bearer requis)
+```
+POST {{baseUrl}}/auth/change-password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "current_password": "MotDePasse123!",
+  "new_password": "NouveauMdp123!"
+}
+```
+
+### 11.2 Utilisateur courant
+
+```
+GET   {{baseUrl}}/users-me
+PATCH {{baseUrl}}/users-me
+{
+  "full_name": "Jean Dupont",
+  "phone": "+243900000000",
+  "avatar_url": "https://.../avatars/uid.png"
+}
+
+GET   {{baseUrl}}/users-me/preferences/notifications
+PATCH {{baseUrl}}/users-me/preferences/notifications
+{ "payments": true, "reminders": true, "news": false, "push": true, "email": true }
+
+PUT   {{baseUrl}}/users-me/push-token
+{ "token": "ExponentPushToken[xxxx]", "platform": "android", "device_id": "abc-123" }
+```
+
+### 11.3 Écoles (super_admin)
+
+```
+GET    {{baseUrl}}/admin-schools?page=1&limit=20&search=kinshasa
+GET    {{baseUrl}}/admin-schools/3f1c...-uuid
+
+POST   {{baseUrl}}/admin-schools
+{
+  "name": "Avada Primary School",
+  "city": "Kinshasa",
+  "address": "Av. de la Paix 12",
+  "phone": "+243812345678",
+  "email": "contact@avada.school",
+  "currency": "CDF"
+}
+
+PATCH  {{baseUrl}}/admin-schools/3f1c...-uuid
+{ "phone": "+243812345679" }
+
+DELETE {{baseUrl}}/admin-schools/3f1c...-uuid
+```
+
+### 11.4 Utilisateurs internes
+
+```
+GET    {{baseUrl}}/admin-users?role=cashier&school_id=<uuid>&page=1&limit=20
+GET    {{baseUrl}}/admin-users/<uuid>
+
+POST   {{baseUrl}}/admin-users
+{
+  "email": "caissier@avada.school",
+  "password": "Temp1234!",
+  "full_name": "Marie Kabila",
+  "phone": "+243900111222",
+  "role": "cashier",
+  "school_ids": ["3f1c...-uuid"]
+}
+
+PATCH  {{baseUrl}}/admin-users/<uuid>
+{ "status": "ACTIVE", "school_ids": ["3f1c...-uuid"] }
+
+PATCH  {{baseUrl}}/admin-users/<uuid>/profile
+{ "full_name": "Marie K.", "phone": "+243900111223" }
+```
+
+### 11.5 Parents
+
+```
+GET    {{baseUrl}}/admin-parents?schoolId=<uuid>&search=dupont&page=1&limit=20
+GET    {{baseUrl}}/admin-parents/<userId>
+
+POST   {{baseUrl}}/admin-parents
+{
+  "school_id": "3f1c...-uuid",
+  "full_name": "Jean Dupont",
+  "email": "jean.dupont@example.com",
+  "phone": "+243900000000",
+  "password": "Temp1234!",
+  "relationship": "father",
+  "children": [
+    { "student_id": "stu...-uuid", "relationship": "father" }
+  ]
+}
+
+PATCH  {{baseUrl}}/admin-parents/<userId>
+{ "phone": "+243900000001", "relationship": "guardian" }
+
+DELETE {{baseUrl}}/admin-parents/<userId>
+
+POST   {{baseUrl}}/admin-parents/import
+{
+  "school_id": "3f1c...-uuid",
+  "rows": [
+    { "full_name": "A. Test", "email": "a@test.com", "phone": "+24390..." }
+  ]
+}
+
+GET    {{baseUrl}}/admin-parents/search-exact?email=jean.dupont@example.com
+GET    {{baseUrl}}/admin-parents/by-school?schoolId=<uuid>
+GET    {{baseUrl}}/admin-parents/students/<studentId>/parents
+
+POST   {{baseUrl}}/admin-parents/link
+{ "parent_user_id": "<uuid>", "student_id": "<uuid>", "relationship": "mother" }
+
+DELETE {{baseUrl}}/admin-parents/link/<linkId>
+```
+
+### 11.6 Collections & dashboards
+
+```
+GET {{baseUrl}}/admin-collections?schoolId=<uuid>&from=2026-01-01&to=2026-06-30
+GET {{baseUrl}}/admin-dashboard
+GET {{baseUrl}}/cashier-dashboard/<schoolId>
+```
+
+### 11.7 Élèves & classes
+
+```
+GET    {{baseUrl}}/students?school_id=<uuid>&class_id=<uuid>&page=1&limit=20
+POST   {{baseUrl}}/students
+{
+  "school_id": "3f1c...-uuid",
+  "class_id":  "cls...-uuid",
+  "first_name": "Eliane",
+  "last_name":  "Mbuyi",
+  "matricule":  "AV-2026-0001",
+  "birth_date": "2014-08-12",
+  "gender": "F",
+  "enrollment_date": "2026-09-01"
+}
+
+POST   {{baseUrl}}/students/import
+{
+  "school_id": "3f1c...-uuid",
+  "rows": [
+    { "first_name": "A", "last_name": "B", "matricule": "AV-2026-0002", "class_id": "cls...-uuid" }
+  ]
+}
+
+PUT    {{baseUrl}}/students/<id>
+{ "class_id": "cls...-uuid", "first_name": "Eliane" }
+
+DELETE {{baseUrl}}/students/<id>
+
+GET    {{baseUrl}}/students-by-parent
+GET    {{baseUrl}}/classes?school_id=<uuid>&academic_year=2025-2026
+```
+
+### 11.8 Frais
+
+```
+GET  {{baseUrl}}/fees?page=1&limit=20&filter[school_id]=<uuid>
+GET  {{baseUrl}}/fees/by-school/<schoolId>
+
+POST {{baseUrl}}/fees
+{
+  "school_id": "3f1c...-uuid",
+  "scope": "CLASS",
+  "label": "Frais scolaires T1",
+  "fee_type": "TUITION",
+  "amount": 150000,
+  "currency": "CDF",
+  "due_date": "2026-10-15",
+  "academic_year": "2026-2027",
+  "class_id": "cls...-uuid"
+}
+
+// Scope STUDENT
+{
+  "school_id": "<uuid>", "scope": "STUDENT", "label": "Frais d'examen",
+  "fee_type": "EXAM", "amount": 25000, "student_id": "<studentId>"
+}
+
+// Scope SCHOOL
+{
+  "school_id": "<uuid>", "scope": "SCHOOL", "label": "Cotisation annuelle",
+  "fee_type": "ANNUAL", "amount": 5000
+}
+
+GET  {{baseUrl}}/fees-by-parent
+```
+
+### 11.9 Paiements
+
+```
+GET  {{baseUrl}}/payments?page=1&limit=20&filter[status]=COMPLETED
+GET  {{baseUrl}}/payments/<id>
+
+POST {{baseUrl}}/payments/initiate
+{
+  "fee_id":   "fee...-uuid",
+  "student_id": "stu...-uuid",
+  "amount":   150000,
+  "currency": "CDF",
+  "method":   "AVADAPAY",
+  "msisdn":   "+243900000000",
+  "return_url": "https://avada-school-projects.lovable.app/payments"
+}
+
+POST {{baseUrl}}/payments/<id>/verify
+POST {{baseUrl}}/payments/<id>/cancel
+```
+
+**Webhook AvadaPay** (appelé par AvadaPay, pas par le front — pas d'auth Bearer)
+```
+POST {{baseUrl}}/payments-callback
+X-AvadaPay-Signature: <hmac>
+Content-Type: application/json
+
+{
+  "transaction_id": "AP-123456",
+  "reference":      "<payment.id>",
+  "status":         "SUCCESS",
+  "amount":         150000,
+  "currency":       "CDF"
+}
+```
+
+### 11.10 Reçus
+
+```
+GET {{baseUrl}}/receipts/<id>/pdf
+Accept: application/pdf
+```
+Dans Postman : onglet « Send and Download » pour récupérer le fichier.
+
+### 11.11 Notifications
+
+```
+GET   {{baseUrl}}/notifications?page=1&limit=20&filter[read]=false
+PATCH {{baseUrl}}/notifications/read-all
+PATCH {{baseUrl}}/notifications/<id>/read
+```
+
+---
+
+## 12. Collection Postman (import rapide)
+
+Enregistrez ce JSON dans un fichier `avada-school.postman_collection.json`
+puis **Import → File** dans Postman :
+
+```json
+{
+  "info": { "name": "Avada School API", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [
+    { "key": "baseUrl", "value": "https://ixtnwgkxrlukgnmdophx.supabase.co/functions/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth / Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/auth/login",
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@avada.school\",\n  \"password\": \"MotDePasse123!\"\n}" }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "const j = pm.response.json();",
+          "if (j?.data?.accessToken) pm.environment.set('accessToken', j.data.accessToken);",
+          "if (j?.data?.refreshToken) pm.environment.set('refreshToken', j.data.refreshToken);"
+        ] }
+      }]
+    },
+    {
+      "name": "Users / Me",
+      "request": { "method": "GET", "url": "{{baseUrl}}/users-me" }
+    },
+    {
+      "name": "Fees / Create",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/fees",
+        "body": { "mode": "raw", "raw": "{\n  \"school_id\": \"<uuid>\",\n  \"scope\": \"CLASS\",\n  \"label\": \"Frais scolaires T1\",\n  \"fee_type\": \"TUITION\",\n  \"amount\": 150000,\n  \"currency\": \"CDF\",\n  \"class_id\": \"<uuid>\"\n}" }
+      }
+    },
+    {
+      "name": "Payments / Initiate",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/payments/initiate",
+        "body": { "mode": "raw", "raw": "{\n  \"fee_id\": \"<uuid>\",\n  \"student_id\": \"<uuid>\",\n  \"amount\": 150000,\n  \"currency\": \"CDF\",\n  \"method\": \"AVADAPAY\",\n  \"msisdn\": \"+243900000000\"\n}" }
+      }
+    }
+  ]
+}
+```
+
+Le test script du **Login** stocke automatiquement `accessToken` /
+`refreshToken` dans l'environnement Postman ; toutes les autres requêtes
+les réutilisent via l'auth Bearer de la collection.
