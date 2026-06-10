@@ -9,13 +9,9 @@ export const Route = createFileRoute("/")({
       const isStaff = roles.some((r) => r === "super_admin" || r === "admin" || r === "cashier");
       throw redirect({ to: isCashierOnly ? "/cashier" : (isStaff ? "/admin" : "/home") });
     }
-    // Onboarding state lives in the browser; on the server we always go to onboarding,
-    // and the client will redirect to /login if it has been seen before.
-    if (typeof window === "undefined") {
-      throw redirect({ to: "/onboarding" });
-    }
-    const seen = window.localStorage.getItem("avada.onboarding.seen");
-    throw redirect({ to: seen === "1" ? "/login" : "/onboarding" });
+    // Toujours afficher l'onboarding pour les visiteurs non connectés.
+    // L'utilisateur peut le "Passer" pour aller au login.
+    throw redirect({ to: "/onboarding" });
   },
   component: () => null,
 });
