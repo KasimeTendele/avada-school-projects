@@ -60,10 +60,10 @@ function LoginPage() {
     <MobileShell>
       <div className="flex min-h-screen sm:min-h-[calc(100vh-3rem)] flex-col bg-background">
         {/* Header image */}
-        <div className="relative h-96 overflow-hidden rounded-b-[2.5rem]">
+        <div className="relative h-[32rem] overflow-hidden rounded-b-[2.5rem]">
           <img src={onb1} alt="" className="h-full w-full object-cover" loading="eager" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/30" />
-          <div className="absolute inset-0 flex items-end justify-center pb-6">
+          <div className="absolute inset-0 flex items-end justify-center pb-10">
             <img
               src={avadaLogo.url}
               alt="Avada School"
