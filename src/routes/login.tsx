@@ -67,7 +67,7 @@ function LoginPage() {
             <img
               src={avadaLogo.url}
               alt="Avada School"
-              className="h-[230px] w-auto px-5 py-3 drop-shadow-lg"
+              className="h-[210px] w-auto px-5 py-3 drop-shadow-lg"
               style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.35))" }}
             />
           </div>
