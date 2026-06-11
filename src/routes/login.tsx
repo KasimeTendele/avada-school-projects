@@ -63,7 +63,7 @@ function LoginPage() {
         <div className="relative h-64 overflow-hidden rounded-b-[2.5rem]">
           <img src={onb1} alt="" className="h-full w-full object-cover" loading="eager" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/30" />
-          <div className="absolute inset-0 flex items-center justify-center pt-8">
+          <div className="absolute inset-0 flex items-center justify-center pt-20">
             <img
               src={avadaLogo.url}
               alt="Avada School"
