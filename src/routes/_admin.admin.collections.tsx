@@ -1,16 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { LuPercent as Percent, LuHourglass as Hourglass, LuGraduationCap as GraduationCap, LuChevronRight as ChevronRight, LuSmartphone as Smartphone, LuCreditCard as CreditCard, LuUserRoundCheck as UserRoundCheck, LuFileText as FileText, LuMapPin as MapPin, LuTrendingUp as TrendingUp } from "react-icons/lu";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { LuPercent as Percent, LuHourglass as Hourglass, LuGraduationCap as GraduationCap, LuChevronRight as ChevronRight, LuSmartphone as Smartphone, LuCreditCard as CreditCard, LuUserRoundCheck as UserRoundCheck, LuFileText as FileText, LuMapPin as MapPin, LuTrendingUp as TrendingUp, LuX as X } from "react-icons/lu";
 import { Link } from "@tanstack/react-router";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminHero } from "@/components/AdminHero";
-import { apiFetch } from "@/lib/api";
+import { apiClient } from "@/shared/api/client";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FeeToCollect {
   id: string; label: string; amount: number; currency: string;
   school_name: string; class_name: string | null; student_name: string;
+  student_first_name: string | null;
+  student_last_name: string | null;
+  student_post_name: string | null;
+  student_photo_url: string | null;
+  student_matricule: string | null;
   remaining: number;
 }
 interface RecentPayment {
