@@ -143,23 +143,45 @@ function CollectionsPage() {
           </button>
         </div>
         <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide">
-          {(data?.feesToCollect ?? []).map((f) => (
-            <article key={f.id} className="w-[260px] shrink-0 snap-start rounded-3xl border border-primary/40 bg-card p-4 shadow-[var(--shadow-card)]">
+          {(data?.feesToCollect ?? []).map((f: FeeToCollect) => (
+            <button
+              key={f.id}
+              onClick={() => handleOpenDetail(f.id)}
+              className="w-[260px] shrink-0 snap-start rounded-3xl border border-primary/40 bg-card p-4 shadow-[var(--shadow-card)] text-left transition-shadow hover:shadow-[var(--shadow-elevated)]"
+            >
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-tint-sky text-tint-sky-foreground">
-                  <GraduationCap className="h-5 w-5" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-tint-sky text-tint-sky-foreground overflow-hidden">
+                  {f.student_photo_url ? (
+                    <img src={f.student_photo_url} alt={f.student_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <GraduationCap className="h-5 w-5" />
+                  )}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-[11px] font-bold uppercase tracking-wider text-primary">{f.school_name}</p>
                   <p className="truncate text-sm font-extrabold">{f.label}</p>
                 </div>
               </div>
-              <p className="mt-2 truncate text-xs text-muted-foreground">👤 {f.student_name}</p>
-              {f.class_name && <p className="mt-1 truncate text-xs text-muted-foreground">🎓 {f.class_name}</p>}
+              <div className="mt-2 flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px]">
+                  👤
+                </span>
+                <p className="truncate text-xs text-muted-foreground">{f.student_name}</p>
+              </div>
+              {f.class_name && (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  <span className="mr-1">🎓</span> {f.class_name}
+                </p>
+              )}
+              {f.student_matricule && (
+                <p className="mt-1 truncate text-[10px] text-muted-foreground">
+                  Matricule: {f.student_matricule}
+                </p>
+              )}
               <p className="mt-2 text-sm font-extrabold text-success">
                 Reste: {formatNumber(f.remaining)} {f.currency}
               </p>
-            </article>
+            </button>
           ))}
           {(!data || data.feesToCollect.length === 0) && (
             <p className="text-sm text-muted-foreground">Aucun frais en attente.</p>
