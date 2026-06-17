@@ -198,7 +198,7 @@ function CollectionsPage() {
           </Link>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(data?.perSchool ?? []).map((s) => (
+          {(data?.perSchool ?? []).map((s: SchoolStat) => (
             <Link
               key={s.id}
               to="/admin/schools/$id"
