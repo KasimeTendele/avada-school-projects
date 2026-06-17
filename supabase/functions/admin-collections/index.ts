@@ -4,6 +4,95 @@ import { ok, errors } from "../_shared/response.ts";
 
 const router = new Router("/admin-collections");
 
+// GET /admin-collections/:id  -> détails complets d'un encaissement (paiement)
+// Retourne école, motif (label du frais), montant, infos élève (nom complet, classe)
+router.get("/:id", async (req, params) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  if (!hasAnyRole(ctx, ["super_admin", "admin", "cashier"])) {
+    return errors.scopeForbidden("Admin/cashier role required");
+  }
+  const admin = adminClient();
+  const { data: payment, error } = await admin
+    .from("payments")
+    .select("id, amount, currency, method, status, paid_at, created_at, reference, student_id, fee_id, school_id")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (error) return errors.internal(error.message);
+  if (!payment) return errors.notFound("Paiement introuvable");
+
+  const [{ data: school }, { data: fee }, { data: student }] = await Promise.all([
+    payment.school_id
+      ? admin.from("schools").select("id, name, sigle, city, logo_url").eq("id", payment.school_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    payment.fee_id
+      ? admin.from("fees").select("id, label, amount, currency, scope, due_date").eq("id", payment.fee_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    payment.student_id
+      ? admin.from("students").select("id, first_name, last_name, post_name, matricule, gender, photo_url, class_id, school_id").eq("id", payment.student_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  let studentClass: any = null;
+  const classId = (student as any)?.class_id ?? null;
+  if (classId) {
+    const { data: c } = await admin
+      .from("classes").select("id, name, level, academic_year").eq("id", classId).maybeSingle();
+    studentClass = c ?? null;
+  }
+
+  const fullName = student
+    ? [(student as any).first_name, (student as any).post_name, (student as any).last_name]
+        .filter(Boolean).join(" ").trim()
+    : null;
+
+  return ok({
+    payment: {
+      id: payment.id,
+      amount: Number(payment.amount ?? 0),
+      currency: payment.currency,
+      method: payment.method,
+      status: payment.status,
+      reference: (payment as any).reference ?? null,
+      paid_at: payment.paid_at,
+      created_at: payment.created_at,
+    },
+    motif: fee?.label ?? null,
+    fee: fee
+      ? {
+          id: (fee as any).id,
+          label: (fee as any).label,
+          amount: Number((fee as any).amount ?? 0),
+          currency: (fee as any).currency,
+          scope: (fee as any).scope,
+          due_date: (fee as any).due_date ?? null,
+        }
+      : null,
+    school: school
+      ? {
+          id: (school as any).id,
+          name: (school as any).name,
+          sigle: (school as any).sigle ?? null,
+          city: (school as any).city ?? null,
+          logo_url: (school as any).logo_url ?? null,
+        }
+      : null,
+    student: student
+      ? {
+          id: (student as any).id,
+          full_name: fullName,
+          first_name: (student as any).first_name,
+          last_name: (student as any).last_name,
+          post_name: (student as any).post_name ?? null,
+          matricule: (student as any).matricule,
+          gender: (student as any).gender ?? null,
+          photo_url: (student as any).photo_url ?? null,
+          class: studentClass,
+        }
+      : null,
+  });
+});
+
 router.get("/", async (req) => {
   const ctx = await requireAuth(req);
   if (ctx instanceof Response) return ctx;
