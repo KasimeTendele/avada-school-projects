@@ -309,6 +309,70 @@ function CollectionsPage() {
           )}
         </div>
       </section>
+
+      {/* Drawer détail frais / encaissement */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Détail</SheetTitle>
+            <SheetDescription>Informations complètes sur l'élève et le frais.</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            {detailQuery.isLoading && (
+              <div className="space-y-3">
+                <Skeleton className="h-20 w-full rounded-2xl" />
+                <Skeleton className="h-12 w-full rounded-2xl" />
+                <Skeleton className="h-12 w-full rounded-2xl" />
+              </div>
+            )}
+            {detailQuery.isError && (
+              <p className="text-sm text-destructive">Erreur lors du chargement des détails.</p>
+            )}
+            {detailQuery.data && (
+              <div className="space-y-4">
+                {/* Élève */}
+                <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-tint-sky text-tint-sky-foreground">
+                    {detailQuery.data.student?.photo_url ? (
+                      <img src={detailQuery.data.student.photo_url} alt={detailQuery.data.student.full_name} className="h-full w-full object-cover" />
+                    ) : (
+                      <GraduationCap className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold">{detailQuery.data.student?.full_name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">{detailQuery.data.student?.matricule ?? "—"}</p>
+                    {detailQuery.data.student?.class && (
+                      <p className="text-xs text-muted-foreground">🎓 {detailQuery.data.student.class.name}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* École */}
+                <div className="rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">École</p>
+                  <p className="text-sm font-extrabold">{detailQuery.data.school?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">{detailQuery.data.school?.city ?? ""}</p>
+                </div>
+
+                {/* Motif & montant */}
+                <div className="rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">Motif</p>
+                  <p className="text-sm font-extrabold">{detailQuery.data.motif ?? "—"}</p>
+                  <p className="mt-1 text-sm font-extrabold text-success">
+                    {detailQuery.data.type === "fee"
+                      ? `${formatNumber(detailQuery.data.fee?.amount ?? 0)} ${detailQuery.data.fee?.currency ?? ""}`
+                      : `${formatNumber(detailQuery.data.payment?.amount ?? 0)} ${detailQuery.data.payment?.currency ?? ""}`}
+                  </p>
+                  {detailQuery.data.payment?.status && (
+                    <p className="mt-1 text-xs text-muted-foreground">Statut: {detailQuery.data.payment.status}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </AdminShell>
   );
 }
