@@ -55,7 +55,7 @@ export const Route = createFileRoute("/_admin/admin/collections")({
 function CollectionsPage() {
   const { data } = useQuery({
     queryKey: ["admin-collections"],
-    queryFn: () => apiFetch<CollectionsResp>("/admin-collections"),
+    queryFn: () => apiClient.get<CollectionsResp>("/admin-collections"),
   });
 
   return (
