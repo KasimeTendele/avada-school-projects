@@ -71,9 +71,8 @@ function NewStudentPage() {
   const sectionsQ = useQuery({
     queryKey: ["sections", schoolId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("sections").select("id, name").eq("school_id", schoolId!).order("name");
-      if (error) throw error;
-      return (data ?? []) as Section[];
+      const res = await apiFetch<{ items: Section[] }>(`/sections?schoolId=${schoolId}&limit=100`);
+      return res.items ?? [];
     },
     enabled: !!schoolId,
   });
@@ -89,9 +88,8 @@ function NewStudentPage() {
   const classesQ = useQuery({
     queryKey: ["classes", schoolId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("classes").select("id, name, level, academic_year").eq("school_id", schoolId!).order("name");
-      if (error) throw error;
-      return (data ?? []) as ClassRow[];
+      const res = await apiFetch<{ items: ClassRow[] }>(`/classes?schoolId=${schoolId}&limit=100`);
+      return res.items ?? [];
     },
     enabled: !!schoolId,
   });
