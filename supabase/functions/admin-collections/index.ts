@@ -225,6 +225,9 @@ router.get("/", async (req) => {
   // Compute "remaining" per fee (skip lookup of paid for simplicity, use fee.amount)
   const feesToCollect = (feesPending ?? []).map((f: any) => {
     const student = f.student_id ? studentsById.get(f.student_id) : null;
+    const fullName = student
+      ? [student.first_name, student.post_name, student.last_name].filter(Boolean).join(" ").trim()
+      : null;
     return {
       id: f.id,
       label: f.label,
@@ -232,7 +235,12 @@ router.get("/", async (req) => {
       currency: f.currency,
       school_name: schoolsById.get(f.school_id) ?? "—",
       class_name: f.class_id ? classesById.get(f.class_id) : null,
-      student_name: student ? `${student.first_name} ${student.last_name}` : "—",
+      student_name: fullName ?? "—",
+      student_first_name: student?.first_name ?? null,
+      student_last_name: student?.last_name ?? null,
+      student_post_name: student?.post_name ?? null,
+      student_photo_url: student?.photo_url ?? null,
+      student_matricule: student?.matricule ?? null,
       remaining: Number(f.amount ?? 0),
     };
   });
