@@ -281,7 +281,7 @@ function CollectionsPage() {
           </button>
         </div>
         <div className="mt-3 space-y-2.5">
-          {(data?.recent ?? []).map((p) => {
+          {(data?.recent ?? []).map((p: RecentPayment) => {
             const date = new Date(p.paid_at ?? p.created_at);
             const dateStr = `${date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}, ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
             const isMobile = (p.method ?? "").toLowerCase().includes("mobile");
