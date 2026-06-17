@@ -28,6 +28,9 @@ export const endpoints = {
   classes: {
     base: "/classes",
   },
+  sections: {
+    base: "/sections",
+  },
   fees: {
     base: "/fees",
     byParent: "/fees-by-parent",
