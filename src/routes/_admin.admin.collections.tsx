@@ -52,11 +52,34 @@ export const Route = createFileRoute("/_admin/admin/collections")({
   component: CollectionsPage,
 });
 
+interface CollectionDetail {
+  type: "payment" | "fee";
+  payment?: any;
+  fee?: any;
+  motif: string | null;
+  school: any;
+  student: any;
+}
+
 function CollectionsPage() {
   const { data } = useQuery({
     queryKey: ["admin-collections"],
     queryFn: () => apiClient.get<CollectionsResp>("/admin-collections"),
   });
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const detailQuery = useQuery({
+    queryKey: ["admin-collections-detail", selectedId],
+    queryFn: () => apiClient.get<CollectionDetail>(`/admin-collections/${selectedId}`),
+    enabled: !!selectedId,
+  });
+
+  const handleOpenDetail = (id: string) => {
+    setSelectedId(id);
+    setOpen(true);
+  };
 
   return (
     <AdminShell>
