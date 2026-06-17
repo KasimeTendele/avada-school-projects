@@ -1,16 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { LuPercent as Percent, LuHourglass as Hourglass, LuGraduationCap as GraduationCap, LuChevronRight as ChevronRight, LuSmartphone as Smartphone, LuCreditCard as CreditCard, LuUserRoundCheck as UserRoundCheck, LuFileText as FileText, LuMapPin as MapPin, LuTrendingUp as TrendingUp } from "react-icons/lu";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { LuPercent as Percent, LuHourglass as Hourglass, LuGraduationCap as GraduationCap, LuChevronRight as ChevronRight, LuSmartphone as Smartphone, LuCreditCard as CreditCard, LuUserRoundCheck as UserRoundCheck, LuFileText as FileText, LuMapPin as MapPin, LuTrendingUp as TrendingUp, LuX as X } from "react-icons/lu";
 import { Link } from "@tanstack/react-router";
 import { AdminShell } from "@/components/AdminShell";
 import { AdminHero } from "@/components/AdminHero";
-import { apiFetch } from "@/lib/api";
+import { apiClient } from "@/shared/api/client";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FeeToCollect {
   id: string; label: string; amount: number; currency: string;
   school_name: string; class_name: string | null; student_name: string;
+  student_first_name: string | null;
+  student_last_name: string | null;
+  student_post_name: string | null;
+  student_photo_url: string | null;
+  student_matricule: string | null;
   remaining: number;
 }
 interface RecentPayment {
@@ -44,11 +52,34 @@ export const Route = createFileRoute("/_admin/admin/collections")({
   component: CollectionsPage,
 });
 
+interface CollectionDetail {
+  type: "payment" | "fee";
+  payment?: any;
+  fee?: any;
+  motif: string | null;
+  school: any;
+  student: any;
+}
+
 function CollectionsPage() {
   const { data } = useQuery({
     queryKey: ["admin-collections"],
-    queryFn: () => apiFetch<CollectionsResp>("/admin-collections"),
+    queryFn: () => apiClient.get<CollectionsResp>("/admin-collections"),
   });
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const detailQuery = useQuery({
+    queryKey: ["admin-collections-detail", selectedId],
+    queryFn: () => apiClient.get<CollectionDetail>(`/admin-collections/${selectedId}`),
+    enabled: !!selectedId,
+  });
+
+  const handleOpenDetail = (id: string) => {
+    setSelectedId(id);
+    setOpen(true);
+  };
 
   return (
     <AdminShell>
@@ -112,23 +143,45 @@ function CollectionsPage() {
           </button>
         </div>
         <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide">
-          {(data?.feesToCollect ?? []).map((f) => (
-            <article key={f.id} className="w-[260px] shrink-0 snap-start rounded-3xl border border-primary/40 bg-card p-4 shadow-[var(--shadow-card)]">
+          {(data?.feesToCollect ?? []).map((f: FeeToCollect) => (
+            <button
+              key={f.id}
+              onClick={() => handleOpenDetail(f.id)}
+              className="w-[260px] shrink-0 snap-start rounded-3xl border border-primary/40 bg-card p-4 shadow-[var(--shadow-card)] text-left transition-shadow hover:shadow-[var(--shadow-elevated)]"
+            >
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-tint-sky text-tint-sky-foreground">
-                  <GraduationCap className="h-5 w-5" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-tint-sky text-tint-sky-foreground overflow-hidden">
+                  {f.student_photo_url ? (
+                    <img src={f.student_photo_url} alt={f.student_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <GraduationCap className="h-5 w-5" />
+                  )}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-[11px] font-bold uppercase tracking-wider text-primary">{f.school_name}</p>
                   <p className="truncate text-sm font-extrabold">{f.label}</p>
                 </div>
               </div>
-              <p className="mt-2 truncate text-xs text-muted-foreground">👤 {f.student_name}</p>
-              {f.class_name && <p className="mt-1 truncate text-xs text-muted-foreground">🎓 {f.class_name}</p>}
+              <div className="mt-2 flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px]">
+                  👤
+                </span>
+                <p className="truncate text-xs text-muted-foreground">{f.student_name}</p>
+              </div>
+              {f.class_name && (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  <span className="mr-1">🎓</span> {f.class_name}
+                </p>
+              )}
+              {f.student_matricule && (
+                <p className="mt-1 truncate text-[10px] text-muted-foreground">
+                  Matricule: {f.student_matricule}
+                </p>
+              )}
               <p className="mt-2 text-sm font-extrabold text-success">
                 Reste: {formatNumber(f.remaining)} {f.currency}
               </p>
-            </article>
+            </button>
           ))}
           {(!data || data.feesToCollect.length === 0) && (
             <p className="text-sm text-muted-foreground">Aucun frais en attente.</p>
@@ -145,7 +198,7 @@ function CollectionsPage() {
           </Link>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(data?.perSchool ?? []).map((s) => (
+          {(data?.perSchool ?? []).map((s: SchoolStat) => (
             <Link
               key={s.id}
               to="/admin/schools/$id"
@@ -228,7 +281,7 @@ function CollectionsPage() {
           </button>
         </div>
         <div className="mt-3 space-y-2.5">
-          {(data?.recent ?? []).map((p) => {
+          {(data?.recent ?? []).map((p: RecentPayment) => {
             const date = new Date(p.paid_at ?? p.created_at);
             const dateStr = `${date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}, ${date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
             const isMobile = (p.method ?? "").toLowerCase().includes("mobile");
@@ -256,6 +309,70 @@ function CollectionsPage() {
           )}
         </div>
       </section>
+
+      {/* Drawer détail frais / encaissement */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Détail</SheetTitle>
+            <SheetDescription>Informations complètes sur l'élève et le frais.</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            {detailQuery.isLoading && (
+              <div className="space-y-3">
+                <Skeleton className="h-20 w-full rounded-2xl" />
+                <Skeleton className="h-12 w-full rounded-2xl" />
+                <Skeleton className="h-12 w-full rounded-2xl" />
+              </div>
+            )}
+            {detailQuery.isError && (
+              <p className="text-sm text-destructive">Erreur lors du chargement des détails.</p>
+            )}
+            {detailQuery.data && (
+              <div className="space-y-4">
+                {/* Élève */}
+                <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-tint-sky text-tint-sky-foreground">
+                    {detailQuery.data.student?.photo_url ? (
+                      <img src={detailQuery.data.student.photo_url} alt={detailQuery.data.student.full_name} className="h-full w-full object-cover" />
+                    ) : (
+                      <GraduationCap className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold">{detailQuery.data.student?.full_name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">{detailQuery.data.student?.matricule ?? "—"}</p>
+                    {detailQuery.data.student?.class && (
+                      <p className="text-xs text-muted-foreground">🎓 {detailQuery.data.student.class.name}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* École */}
+                <div className="rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">École</p>
+                  <p className="text-sm font-extrabold">{detailQuery.data.school?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">{detailQuery.data.school?.city ?? ""}</p>
+                </div>
+
+                {/* Motif & montant */}
+                <div className="rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">Motif</p>
+                  <p className="text-sm font-extrabold">{detailQuery.data.motif ?? "—"}</p>
+                  <p className="mt-1 text-sm font-extrabold text-success">
+                    {detailQuery.data.type === "fee"
+                      ? `${formatNumber(detailQuery.data.fee?.amount ?? 0)} ${detailQuery.data.fee?.currency ?? ""}`
+                      : `${formatNumber(detailQuery.data.payment?.amount ?? 0)} ${detailQuery.data.payment?.currency ?? ""}`}
+                  </p>
+                  {detailQuery.data.payment?.status && (
+                    <p className="mt-1 text-xs text-muted-foreground">Statut: {detailQuery.data.payment.status}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </AdminShell>
   );
 }
