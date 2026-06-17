@@ -15,7 +15,7 @@ router.get("/:id", async (req, params) => {
   const admin = adminClient();
   const { data: payment, error } = await admin
     .from("payments")
-    .select("id, amount, currency, method, status, paid_at, created_at, reference, student_id, fee_id, school_id, class_id")
+    .select("id, amount, currency, method, status, paid_at, created_at, reference, student_id, fee_id, school_id")
     .eq("id", params.id)
     .maybeSingle();
   if (error) return errors.internal(error.message);
@@ -34,7 +34,7 @@ router.get("/:id", async (req, params) => {
   ]);
 
   let studentClass: any = null;
-  const classId = (student as any)?.class_id ?? payment.class_id;
+  const classId = (student as any)?.class_id ?? null;
   if (classId) {
     const { data: c } = await admin
       .from("classes").select("id, name, level, academic_year").eq("id", classId).maybeSingle();
