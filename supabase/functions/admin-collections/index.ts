@@ -199,7 +199,7 @@ router.get("/", async (req) => {
     admin.from("payments").select("amount").eq("status", "COMPLETED").gte("paid_at", startOfWeek.toISOString()),
     admin.from("fees").select("id, label, amount, currency, school_id, class_id, student_id").limit(20),
     admin.from("payments").select("id, amount, currency, method, status, paid_at, created_at, student_id, fee_id, school_id").order("created_at", { ascending: false }).limit(20),
-    admin.from("students").select("id, first_name, last_name, school_id, class_id"),
+    admin.from("students").select("id, first_name, last_name, post_name, matricule, photo_url, school_id, class_id"),
     admin.from("schools").select("id, name, status, logo_url, city"),
     admin.from("classes").select("id, name"),
     admin.from("fees").select("id, label, amount, currency, school_id, class_id, student_id"),
