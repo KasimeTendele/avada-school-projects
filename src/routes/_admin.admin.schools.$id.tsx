@@ -23,7 +23,7 @@ interface School {
   epst_number?: string | null;
   regime?: string | null;
   management_type?: string | null;
-  levels?: string[] | null;
+  classes?: string[] | null;
   sections?: string[] | null;
   vacation?: string | null;
   city?: string | null;
@@ -45,7 +45,7 @@ interface School {
 
 type Form = {
   name: string; sigle: string; matricule: string; epst_number: string;
-  regime: string; management_type: string; levels: string[]; sections: string[]; vacation: string;
+  regime: string; management_type: string; classes: string[]; sections: string[]; vacation: string;
   city: string; address: string; phone: string; email: string; logo_url: string;
   promoter_name: string; promoter_phone: string; approval_number: string;
   director_first_name: string; director_last_name: string; director_post_name: string;
@@ -54,7 +54,7 @@ type Form = {
 
 const EMPTY: Form = {
   name: "", sigle: "", matricule: "", epst_number: "",
-  regime: "", management_type: "", levels: [], sections: [], vacation: "",
+  regime: "", management_type: "", classes: [], sections: [], vacation: "",
   city: "", address: "", phone: "", email: "", logo_url: "",
   promoter_name: "", promoter_phone: "", approval_number: "",
   director_first_name: "", director_last_name: "", director_post_name: "",
@@ -65,7 +65,7 @@ function fromSchool(s: School): Form {
   return {
     name: s.name ?? "", sigle: s.sigle ?? "", matricule: s.matricule ?? "", epst_number: s.epst_number ?? "",
     regime: s.regime ?? "", management_type: s.management_type ?? "",
-    levels: s.levels ?? [], sections: s.sections ?? [], vacation: s.vacation ?? "",
+    classes: s.classes ?? [], sections: s.sections ?? [], vacation: s.vacation ?? "",
     city: s.city ?? "", address: s.address ?? "", phone: s.phone ?? "", email: s.email ?? "", logo_url: s.logo_url ?? "",
     promoter_name: s.promoter_name ?? "", promoter_phone: s.promoter_phone ?? "", approval_number: s.approval_number ?? "",
     director_first_name: s.director_first_name ?? "", director_last_name: s.director_last_name ?? "", director_post_name: s.director_post_name ?? "",
@@ -98,9 +98,9 @@ function SchoolEditPage() {
   }, [data]);
 
   const update = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const toggle = (k: "levels" | "sections", v: string) =>
+  const toggle = (k: "classes" | "sections", v: string) =>
     setForm((f) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] }));
-  const hasSecondary = form.levels.some((l) => l.startsWith("Secondaire"));
+  const hasSecondary = form.classes.some((l) => l.startsWith("Secondaire"));
   const sectionDisabled = (s: string) => s !== "Pédagogie" && !hasSecondary;
 
   const onSave = async () => {
@@ -182,9 +182,9 @@ function SchoolEditPage() {
           <SelectBox label="Régime" icon={<Scale className="h-4 w-4" />} value={form.regime} options={REGIMES} onChange={(v) => update("regime", v)} disabled={!isSuper} />
           <SelectBox label="Type de gestion" icon={<Scale className="h-4 w-4" />} value={form.management_type} options={MANAGEMENT_TYPES} onChange={(v) => update("management_type", v)} disabled={!isSuper} />
           <div>
-            <p className="mb-2 text-sm font-semibold">Niveaux</p>
+            <p className="mb-2 text-sm font-semibold">Classes</p>
             <div className="grid grid-cols-2 gap-2">
-              {LEVELS.map((l) => <Chip key={l} label={l} checked={form.levels.includes(l)} onClick={() => isSuper && toggle("levels", l)} disabled={!isSuper} />)}
+              {LEVELS.map((l) => <Chip key={l} label={l} checked={form.classes.includes(l)} onClick={() => isSuper && toggle("classes", l)} disabled={!isSuper} />)}
             </div>
           </div>
           <div>
