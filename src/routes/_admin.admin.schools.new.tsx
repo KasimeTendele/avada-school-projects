@@ -25,7 +25,7 @@ interface FormState {
   epst_number: string;
   regime: string;
   management_type: string;
-  levels: string[];
+  classes: string[];
   sections: string[];
   vacation: string;
   city: string;
@@ -50,7 +50,7 @@ function NewSchoolWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>({
     name: "", sigle: "", matricule: "", epst_number: "", regime: "", management_type: "",
-    levels: [], sections: [], vacation: "",
+    classes: [], sections: [], vacation: "",
     city: "", address: "", phone: "", email: "", logo_url: "",
     promoter_name: "", promoter_phone: "", approval_number: "",
     director_first_name: "", director_last_name: "", director_post_name: "",
@@ -59,14 +59,14 @@ function NewSchoolWizard() {
   const total = 7;
 
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const toggle = (k: "levels" | "sections", v: string) =>
+  const toggle = (k: "classes" | "sections", v: string) =>
     setForm((f) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] }));
 
-  const hasSecondary = form.levels.some((l) => l.startsWith("Secondaire"));
+  const hasSecondary = form.classes.some((l) => l.startsWith("Secondaire"));
   const sectionDisabled = (s: string) => s !== "Pédagogie" && !hasSecondary;
 
   const canNext = () => {
-    if (step === 1) return form.name.trim().length > 0 && form.regime && form.levels.length > 0 && form.sections.length > 0 && form.vacation;
+    if (step === 1) return form.name.trim().length > 0 && form.regime && form.classes.length > 0 && form.sections.length > 0 && form.vacation;
     if (step === 2) return true;
     if (step === 3) return true;
     if (step === 4) return true;
@@ -139,7 +139,7 @@ function NewSchoolWizard() {
                   <p className="mb-2 text-sm font-semibold">Niveaux d'enseignement * (au moins 1)</p>
                   <div className="grid grid-cols-2 gap-2">
                     {LEVELS.map((l) => (
-                      <CheckChip key={l} label={l} checked={form.levels.includes(l)} onClick={() => toggle("levels", l)} />
+                      <CheckChip key={l} label={l} checked={form.classes.includes(l)} onClick={() => toggle("classes", l)} />
                     ))}
                   </div>
                 </div>
@@ -233,7 +233,7 @@ function NewSchoolWizard() {
                 <Recap label="Matricule" value={form.matricule || "—"} />
                 <Recap label="Régime" value={form.regime} />
                 <Recap label="Type de gestion" value={form.management_type || "—"} />
-                <Recap label="Niveaux" value={form.levels.join(", ")} />
+                <Recap label="Classes" value={form.classes.join(", ")} />
                 <Recap label="Sections" value={form.sections.join(", ")} />
                 <Recap label="Vacation" value={form.vacation} />
                 <Recap label="Ville" value={form.city || "—"} />
