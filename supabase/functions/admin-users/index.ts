@@ -140,11 +140,10 @@ router.get("/:id", async (req, params) => {
   }
   const admin = adminClient();
   const id = params.id;
-  const [{ data: p }, { data: r }, { data: act }, { data: school }] = await Promise.all([
+  const [{ data: p }, { data: r }, { data: act }] = await Promise.all([
     admin.from("profiles").select("id, full_name, email, phone, avatar_url, primary_school_id, status, created_at").eq("id", id).maybeSingle(),
     admin.from("user_roles").select("role").eq("user_id", id),
     admin.from("user_activity").select("last_login_at").eq("user_id", id).maybeSingle(),
-    null as any,
   ]);
   if (!p) return errors.notFound("User not found");
   let school_name: string | null = null;
