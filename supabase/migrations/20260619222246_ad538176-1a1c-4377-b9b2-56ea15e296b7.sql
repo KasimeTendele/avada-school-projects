@@ -1,0 +1,1 @@
+ALTER TABLE public.schools RENAME COLUMN levels TO classes;
