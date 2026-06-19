@@ -496,6 +496,7 @@ export type Database = {
           address: string | null
           approval_number: string | null
           city: string | null
+          classes: string[]
           created_at: string
           director_email: string | null
           director_first_name: string | null
@@ -506,7 +507,6 @@ export type Database = {
           email: string | null
           epst_number: string | null
           id: string
-          levels: string[]
           logo_url: string | null
           management_type: string | null
           matricule: string | null
@@ -525,6 +525,7 @@ export type Database = {
           address?: string | null
           approval_number?: string | null
           city?: string | null
+          classes?: string[]
           created_at?: string
           director_email?: string | null
           director_first_name?: string | null
@@ -535,7 +536,6 @@ export type Database = {
           email?: string | null
           epst_number?: string | null
           id?: string
-          levels?: string[]
           logo_url?: string | null
           management_type?: string | null
           matricule?: string | null
@@ -554,6 +554,7 @@ export type Database = {
           address?: string | null
           approval_number?: string | null
           city?: string | null
+          classes?: string[]
           created_at?: string
           director_email?: string | null
           director_first_name?: string | null
@@ -564,7 +565,6 @@ export type Database = {
           email?: string | null
           epst_number?: string | null
           id?: string
-          levels?: string[]
           logo_url?: string | null
           management_type?: string | null
           matricule?: string | null
