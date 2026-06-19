@@ -24,7 +24,7 @@ router.get("/", async (req) => {
     { count: studentsCount },
     { count: feesCount },
   ] = await Promise.all([
-    admin.from("schools").select("id, name, sigle, city, address, status, promoter_name, promoter_phone, levels, sections, vacation, regime, epst_number, logo_url, created_at"),
+    admin.from("schools").select("id, name, sigle, city, address, status, promoter_name, promoter_phone, classes, sections, vacation, regime, epst_number, logo_url, created_at"),
     admin.from("students").select("id, school_id"),
     admin.from("fees").select("id, school_id"),
     admin.from("schools").select("id", { count: "exact", head: true }),
@@ -83,7 +83,7 @@ function buildSchoolPayload(body: any) {
     matricule: body.matricule ?? null,
     management_type: body.management_type ?? null,
     regime: body.regime,
-    levels: body.levels,
+    classes: body.classes,
     sections: body.sections,
     vacation: body.vacation,
     city: body.city ?? null,
@@ -114,7 +114,7 @@ router.post("/", async (req) => {
   const body = await req.json().catch(() => ({}));
   if (!body.name || typeof body.name !== "string") return errors.badRequest("name required");
   if (!body.regime) return errors.badRequest("regime required");
-  if (!Array.isArray(body.levels) || body.levels.length === 0) return errors.badRequest("levels required");
+  if (!Array.isArray(body.classes) || body.classes.length === 0) return errors.badRequest("classes required");
   if (!Array.isArray(body.sections) || body.sections.length === 0) return errors.badRequest("sections required");
   if (!body.vacation) return errors.badRequest("vacation required");
 
@@ -141,7 +141,7 @@ router.patch("/:id", async (req, params) => {
   const patch: Record<string, unknown> = {};
   const allowed = [
     "name", "sigle", "epst_number", "matricule", "management_type",
-    "regime", "levels", "sections", "vacation", "city", "address",
+    "regime", "classes", "sections", "vacation", "city", "address",
     "phone", "email", "logo_url",
     "promoter_name", "promoter_phone", "approval_number",
     "director_first_name", "director_last_name", "director_post_name",
