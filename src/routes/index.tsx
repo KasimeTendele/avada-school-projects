@@ -9,8 +9,8 @@ export const Route = createFileRoute("/")({
       const isStaff = roles.some((r) => r === "super_admin" || r === "admin" || r === "cashier");
       throw redirect({ to: isCashierOnly ? "/cashier" : (isStaff ? "/admin" : "/home") });
     }
-    // Toujours afficher l'onboarding pour les visiteurs non connectés.
-    // L'utilisateur peut le "Passer" pour aller au login.
+    // Les visiteurs non connectés sont redirigés vers l'onboarding.
+    // Si les termes ont déjà été acceptés, l'onboarding redirige lui-même vers le login.
     throw redirect({ to: "/onboarding" });
   },
   component: () => null,
