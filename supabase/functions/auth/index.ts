@@ -93,14 +93,57 @@ router.post("/register", async (req) => {
 router.post("/forgot-password", async (req) => {
   const body = (await req.json().catch(() => ({}))) as ForgotBody;
   if (!body.email) return errors.validation("email is required");
-  const sb = userClient(null);
-  const { error } = await sb.auth.resetPasswordForEmail(body.email, {
-    redirectTo: body.redirect_to,
+  const redirectTo =
+    body.redirect_to ??
+    Deno.env.get("APP_RESET_REDIRECT_URL") ??
+    undefined;
+  const admin = adminClient();
+  // Génère le lien de récupération via l'API admin (ne déclenche pas l'email Supabase
+  // car nous l'envoyons nous-mêmes via notre SMTP). Si l'email n'existe pas, on
+  // répond 200 quand même (anti-énumération).
+  const { data, error: linkErr } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: body.email,
+    options: redirectTo ? { redirectTo } : undefined,
   });
-  if (error) return errors.validation(error.message);
-  // Always 200 to avoid email enumeration
+  if (linkErr || !data?.properties?.action_link) {
+    console.warn("[forgot-password] generateLink:", linkErr?.message);
+    return ok({ sent: true }, 200, "Reset instructions sent if account exists");
+  }
+  const actionLink = data.properties.action_link;
+  try {
+    const { sendMail } = await import("../_shared/mailer.ts");
+    await sendMail({
+      to: body.email,
+      subject: "Réinitialisation de votre mot de passe — Avada School",
+      html: buildResetEmail(actionLink),
+      text:
+        "Bonjour,\n\nVous avez demandé la réinitialisation de votre mot de passe.\n" +
+        `Cliquez sur ce lien pour le réinitialiser : ${actionLink}\n\n` +
+        "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\nAvada School",
+    });
+  } catch (e) {
+    console.error("[forgot-password] SMTP send failed:", (e as Error).message);
+    return errors.internal("Email delivery failed");
+  }
   return ok({ sent: true }, 200, "Reset instructions sent if account exists");
 });
+
+function buildResetEmail(link: string): string {
+  return `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f6f8fa;padding:24px;color:#0f172a">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+    <h1 style="margin:0 0 12px;font-size:22px;color:#10b981">Réinitialisation du mot de passe</h1>
+    <p style="font-size:15px;line-height:1.5">Bonjour,</p>
+    <p style="font-size:15px;line-height:1.5">Vous avez demandé à réinitialiser votre mot de passe Avada School. Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.</p>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${link}" style="background:#10b981;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:600;display:inline-block">Réinitialiser mon mot de passe</a>
+    </p>
+    <p style="font-size:13px;color:#64748b;line-height:1.5">Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :<br/><a href="${link}" style="color:#10b981;word-break:break-all">${link}</a></p>
+    <p style="font-size:13px;color:#64748b;line-height:1.5">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+    <p style="font-size:12px;color:#94a3b8;margin:0">© Avada School</p>
+  </div></body></html>`;
+}
 
 router.post("/reset-password", async (req) => {
   const body = (await req.json().catch(() => ({}))) as ResetBody;
