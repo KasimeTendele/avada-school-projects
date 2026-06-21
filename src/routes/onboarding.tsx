@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MobileShell } from "@/components/MobileShell";
@@ -110,23 +110,19 @@ function OnboardingPage() {
       />
       <span>
         J'accepte les{" "}
-        <a
-          href="/terms"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to="/terms"
           className="font-semibold text-primary underline-offset-2 hover:underline"
         >
           Conditions d'utilisation
-        </a>{" "}
+        </Link>{" "}
         et la{" "}
-        <a
-          href="/privacy"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to="/privacy"
           className="font-semibold text-primary underline-offset-2 hover:underline"
         >
           Politique de confidentialité
-        </a>
+        </Link>
       </span>
     </label>
   );
