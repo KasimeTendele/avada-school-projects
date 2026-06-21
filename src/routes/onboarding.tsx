@@ -65,18 +65,21 @@ function OnboardingPage() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashLeaving, setSplashLeaving] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [alreadyAccepted, setAlreadyAccepted] = useState(false);
   const navigate = useNavigate();
   const slide = slides[index];
   const isLast = index === slides.length - 1;
 
-  // Si l'utilisateur a déjà accepté les termes, on le redirige directement vers la connexion.
+  // Si l'utilisateur a déjà accepté les termes, on cache simplement la case à cocher.
+  // L'onboarding continue de s'afficher à chaque visite.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const acceptedAt = window.localStorage.getItem(TERMS_ACCEPTED_KEY);
     if (acceptedAt) {
-      navigate({ to: "/login", replace: true });
+      setAlreadyAccepted(true);
+      setAccepted(true);
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     const fadeTimer = setTimeout(() => setSplashLeaving(true), 600);
@@ -99,7 +102,7 @@ function OnboardingPage() {
       toast.error("Veuillez accepter les Conditions d'utilisation et la Politique de confidentialité.");
       return;
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !alreadyAccepted) {
       window.localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
       window.localStorage.setItem(TERMS_ACCEPTED_KEY, new Date().toISOString());
     }
@@ -192,7 +195,7 @@ function OnboardingPage() {
             ))}
           </div>
 
-          {isLast && <ConsentBox variant="mobile" />}
+          {isLast && !alreadyAccepted && <ConsentBox variant="mobile" />}
 
           <Button
             onClick={next}
@@ -257,7 +260,7 @@ function OnboardingPage() {
               ))}
             </div>
 
-            {isLast && <ConsentBox variant="desktop" />}
+            {isLast && !alreadyAccepted && <ConsentBox variant="desktop" />}
 
             <Button
               onClick={next}
