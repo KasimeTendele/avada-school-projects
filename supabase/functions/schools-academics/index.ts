@@ -64,7 +64,7 @@ router.get("/:id", async (req, params) => {
     { data: options },
   ] = await Promise.all([
     admin.from("sections").select("id, name, level, academic_year, created_at").eq("school_id", schoolId).order("name", { ascending: true }),
-    admin.from("classes").select("id, name, description, created_at").eq("school_id", schoolId).order("name", { ascending: true }),
+    admin.from("classes").select("id, name, level, academic_year, created_at").eq("school_id", schoolId).order("name", { ascending: true }),
     admin.from("options").select("id, section_id, name, description, created_at").eq("school_id", schoolId).order("name", { ascending: true }),
   ]);
 
