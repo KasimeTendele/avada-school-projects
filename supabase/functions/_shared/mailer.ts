@@ -1,7 +1,8 @@
 // Envoi d'emails via SMTP depuis les Edge Functions Deno.
-// Utilise denomailer (https://deno.land/x/denomailer) qui supporte
-// SMTP/SMTPS/STARTTLS et l'authentification LOGIN/PLAIN.
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+// Utilise nodemailer (via npm:) qui gère correctement EHLO/STARTTLS/AUTH
+// pour la plupart des serveurs SMTP, contrairement à denomailer qui
+// échoue avec "invalid cmd" sur certains serveurs.
+import nodemailer from "npm:nodemailer@6.9.14";
 
 export interface MailInput {
   to: string;
@@ -29,23 +30,21 @@ function readSmtpConfig() {
 
 export async function sendMail(input: MailInput): Promise<void> {
   const cfg = readSmtpConfig();
-  const client = new SMTPClient({
-    connection: {
-      hostname: cfg.host,
-      port: cfg.port,
-      tls: cfg.implicitTls,
-      auth: { username: cfg.user, password: cfg.password },
-    },
+  const transporter = nodemailer.createTransport({
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.implicitTls, // true pour 465, false pour 587/25 (STARTTLS auto)
+    auth: { user: cfg.user, pass: cfg.password },
   });
   try {
-    await client.send({
+    await transporter.sendMail({
       from: cfg.from,
       to: input.to,
       subject: input.subject,
-      content: input.text ?? "Veuillez consulter cet email au format HTML.",
+      text: input.text ?? "Veuillez consulter cet email au format HTML.",
       html: input.html,
     });
   } finally {
-    await client.close().catch(() => undefined);
+    transporter.close();
   }
 }
