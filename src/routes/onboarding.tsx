@@ -38,6 +38,9 @@ const slides = [
   },
 ];
 
+const TERMS_ACCEPTED_KEY = "avada.terms.acceptedAt";
+const ONBOARDING_SEEN_KEY = "avada.onboarding.seen";
+
 function SplashScreen({ leaving }: { leaving: boolean }) {
   return (
     <div
@@ -66,6 +69,15 @@ function OnboardingPage() {
   const slide = slides[index];
   const isLast = index === slides.length - 1;
 
+  // Si l'utilisateur a déjà accepté les termes, on le redirige directement vers la connexion.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const acceptedAt = window.localStorage.getItem(TERMS_ACCEPTED_KEY);
+    if (acceptedAt) {
+      navigate({ to: "/login", replace: true });
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const fadeTimer = setTimeout(() => setSplashLeaving(true), 600);
     const removeTimer = setTimeout(() => setShowSplash(false), 1000);
@@ -88,13 +100,15 @@ function OnboardingPage() {
       return;
     }
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("avada.onboarding.seen", "1");
-      window.localStorage.setItem("avada.terms.acceptedAt", new Date().toISOString());
+      window.localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
+      window.localStorage.setItem(TERMS_ACCEPTED_KEY, new Date().toISOString());
     }
     navigate({ to: "/login" });
   };
 
   const next = () => (isLast ? finish() : setIndex(index + 1));
+
+  const goToLastSlide = () => setIndex(slides.length - 1);
 
   const ConsentBox = ({ variant }: { variant: "mobile" | "desktop" }) => (
     <label
@@ -150,10 +164,10 @@ function OnboardingPage() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
         </div>
 
-        {/* Skip */}
+        {/* Passer : amène à la dernière slide où se trouve la case à cocher */}
         {!isLast && (
           <button
-            onClick={finish}
+            onClick={goToLastSlide}
             className="absolute right-5 top-6 z-10 rounded-full bg-black/30 px-4 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
           >
             Passer
@@ -215,7 +229,7 @@ function OnboardingPage() {
         <div className="relative flex h-full w-1/2 flex-col justify-center px-16 lg:px-24">
           {!isLast && (
             <button
-              onClick={finish}
+              onClick={goToLastSlide}
               className="absolute right-8 top-8 rounded-full border border-border bg-background px-4 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
             >
               Passer
