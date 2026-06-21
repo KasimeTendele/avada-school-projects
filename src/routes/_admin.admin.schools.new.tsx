@@ -27,6 +27,7 @@ interface FormState {
   management_type: string;
   classes: string[];
   sections: string[];
+  class_list: string[];
   vacation: string;
   city: string;
   address: string;
@@ -50,7 +51,7 @@ function NewSchoolWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>({
     name: "", sigle: "", matricule: "", epst_number: "", regime: "", management_type: "",
-    classes: [], sections: [], vacation: "",
+    classes: [], sections: [], class_list: [], vacation: "",
     city: "", address: "", phone: "", email: "", logo_url: "",
     promoter_name: "", promoter_phone: "", approval_number: "",
     director_first_name: "", director_last_name: "", director_post_name: "",
@@ -64,6 +65,17 @@ function NewSchoolWizard() {
 
   const hasSecondary = form.classes.some((l) => l.startsWith("Secondaire"));
   const sectionDisabled = (s: string) => s !== "Pédagogie" && !hasSecondary;
+
+  const [newClass, setNewClass] = useState("");
+  const addClass = () => {
+    const v = newClass.trim();
+    if (!v) return;
+    if (form.class_list.includes(v)) { setNewClass(""); return; }
+    setForm((f) => ({ ...f, class_list: [...f.class_list, v] }));
+    setNewClass("");
+  };
+  const removeClass = (v: string) =>
+    setForm((f) => ({ ...f, class_list: f.class_list.filter((x) => x !== v) }));
 
   const canNext = () => {
     if (step === 1) return form.name.trim().length > 0 && form.regime && form.classes.length > 0 && form.sections.length > 0 && form.vacation;
@@ -154,6 +166,36 @@ function NewSchoolWizard() {
                 </div>
 
                 <SelectBox label="Type de vacation *" icon={<Sun className="h-4 w-4" />} value={form.vacation} placeholder="Choisir la vacation" options={VACATIONS} onChange={(v) => update("vacation", v)} />
+
+                <div>
+                  <p className="mb-2 text-sm font-semibold">Classes de l'école</p>
+                  <p className="mb-2 text-xs text-muted-foreground">Ajoutez les classes (ex: « 6e A », « 1ère Scientifique »). Elles seront disponibles à la création des élèves.</p>
+                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-secondary/40 px-4 py-3">
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    <input
+                      value={newClass}
+                      onChange={(e) => setNewClass(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addClass(); } }}
+                      placeholder="Nom de la classe"
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    />
+                    <button type="button" onClick={addClass} className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
+                      Ajouter
+                    </button>
+                  </div>
+                  {form.class_list.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {form.class_list.map((c) => (
+                        <span key={c} className="flex items-center gap-1.5 rounded-2xl border border-primary bg-accent px-3 py-1.5 text-xs font-semibold text-primary">
+                          {c}
+                          <button type="button" onClick={() => removeClass(c)} className="text-primary/70 hover:text-primary">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
@@ -235,6 +277,7 @@ function NewSchoolWizard() {
                 <Recap label="Type de gestion" value={form.management_type || "—"} />
                 <Recap label="Classes" value={form.classes.join(", ")} />
                 <Recap label="Sections" value={form.sections.join(", ")} />
+                <Recap label="Classes saisies" value={form.class_list.join(", ") || "—"} />
                 <Recap label="Vacation" value={form.vacation} />
                 <Recap label="Ville" value={form.city || "—"} />
                 <Recap label="Téléphone" value={form.phone || "—"} />

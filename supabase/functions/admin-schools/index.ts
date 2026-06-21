@@ -125,6 +125,18 @@ router.post("/", async (req) => {
     .select()
     .single();
   if (error) return errors.internal(error.message);
+
+  // Création des classes nominatives de l'école (table classes)
+  if (Array.isArray(body.class_list) && body.class_list.length > 0) {
+    const rows = body.class_list
+      .map((c: any) => (typeof c === "string" ? c.trim() : (c?.name ?? "").trim()))
+      .filter((n: string) => n.length > 0)
+      .map((name: string) => ({ school_id: data.id, name }));
+    if (rows.length > 0) {
+      await admin.from("classes").insert(rows);
+    }
+  }
+
   return ok(data, 201, "Created");
 });
 
