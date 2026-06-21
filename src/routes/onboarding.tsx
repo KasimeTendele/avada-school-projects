@@ -5,6 +5,7 @@ import { MobileShell } from "@/components/MobileShell";
 import onb1 from "@/assets/onboarding-1.jpg";
 import onb2 from "@/assets/onboarding-2.jpg";
 import onb3 from "@/assets/onboarding-3.jpg";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -60,6 +61,7 @@ function OnboardingPage() {
   const [index, setIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [splashLeaving, setSplashLeaving] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const navigate = useNavigate();
   const slide = slides[index];
   const isLast = index === slides.length - 1;
@@ -81,13 +83,53 @@ function OnboardingPage() {
   }, [index, showSplash, isLast]);
 
   const finish = () => {
+    if (!accepted) {
+      toast.error("Veuillez accepter les Conditions d'utilisation et la Politique de confidentialité.");
+      return;
+    }
     if (typeof window !== "undefined") {
       window.localStorage.setItem("avada.onboarding.seen", "1");
+      window.localStorage.setItem("avada.terms.acceptedAt", new Date().toISOString());
     }
     navigate({ to: "/login" });
   };
 
   const next = () => (isLast ? finish() : setIndex(index + 1));
+
+  const ConsentBox = ({ variant }: { variant: "mobile" | "desktop" }) => (
+    <label
+      className={`mt-5 flex items-start gap-3 text-sm ${
+        variant === "mobile" ? "text-white/90" : "text-foreground"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={accepted}
+        onChange={(e) => setAccepted(e.target.checked)}
+        className="mt-0.5 h-5 w-5 shrink-0 rounded border-white/40 accent-primary"
+      />
+      <span>
+        J'accepte les{" "}
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-primary underline-offset-2 hover:underline"
+        >
+          Conditions d'utilisation
+        </a>{" "}
+        et la{" "}
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-primary underline-offset-2 hover:underline"
+        >
+          Politique de confidentialité
+        </a>
+      </span>
+    </label>
+  );
 
   return (
     <>
@@ -140,10 +182,13 @@ function OnboardingPage() {
             ))}
           </div>
 
+          {isLast && <ConsentBox variant="mobile" />}
+
           <Button
             onClick={next}
+            disabled={isLast && !accepted}
             size="lg"
-            className="mt-6 h-14 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary-glow"
+            className="mt-6 h-14 w-full rounded-full bg-primary text-base font-semibold text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary-glow disabled:opacity-60"
           >
             {slide.cta}
           </Button>
@@ -202,10 +247,13 @@ function OnboardingPage() {
               ))}
             </div>
 
+            {isLast && <ConsentBox variant="desktop" />}
+
             <Button
               onClick={next}
+              disabled={isLast && !accepted}
               size="lg"
-              className="mt-8 h-14 rounded-full bg-primary px-10 text-base font-semibold text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary-glow"
+              className="mt-8 h-14 rounded-full bg-primary px-10 text-base font-semibold text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary-glow disabled:opacity-60"
             >
               {slide.cta}
             </Button>
