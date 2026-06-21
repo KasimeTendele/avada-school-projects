@@ -78,10 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) throw error;
+    // On passe par notre edge function /auth/forgot-password qui génère le lien
+    // via l'API admin Supabase puis envoie l'email via notre serveur SMTP.
+    const { apiClient, endpoints } = await import("@/shared/api");
+    await apiClient.post(
+      endpoints.auth.forgotPassword,
+      {
+        email,
+        redirect_to: `${window.location.origin}/reset-password`,
+      },
+      { anonymous: true },
+    );
   };
 
   const refresh = async () => {
