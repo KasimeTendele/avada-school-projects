@@ -7,6 +7,8 @@ import { apiFetch } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { formatNumber, prettyMethod } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { downloadReceiptPdf } from "@/lib/receipt-pdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/receipts/")({
   head: () => ({
@@ -33,6 +35,7 @@ interface Student { id: string; first_name: string; last_name: string }
 
 function ReceiptsListPage() {
   const [search, setSearch] = useState("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const payments = useQuery({
     queryKey: ["payments-completed-receipts"],
@@ -69,6 +72,53 @@ function ReceiptsListPage() {
     (students.data?.items ?? []).forEach((s) => m.set(s.id, s));
     return m;
   }, [students.data]);
+
+  async function handleDownload(
+    e: React.MouseEvent,
+    paymentId: string,
+    receiptId: string,
+    receiptNumber: string,
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (downloadingId) return;
+    setDownloadingId(receiptId);
+    try {
+      const { data: payment, error: pErr } = await supabase
+        .from("payments")
+        .select("id, amount, currency, method, reference, paid_at, fee_id, student_id, school_id, created_at")
+        .eq("id", paymentId)
+        .maybeSingle();
+      if (pErr || !payment) throw pErr ?? new Error("Paiement introuvable");
+      const [{ data: fee }, { data: student }, { data: school }] = await Promise.all([
+        supabase.from("fees").select("label, fee_type").eq("id", payment.fee_id).maybeSingle(),
+        supabase.from("students").select("first_name, last_name, matricule, class_id").eq("id", payment.student_id).maybeSingle(),
+        supabase.from("schools").select("name, sigle, approval_number, address, city, logo_url, email, phone").eq("id", payment.school_id).maybeSingle(),
+      ]);
+      const { data: cls } = student?.class_id
+        ? await supabase.from("classes").select("name, level").eq("id", student.class_id).maybeSingle()
+        : { data: null };
+      await downloadReceiptPdf({
+        school: school ?? {},
+        receipt: { receipt_number: receiptNumber },
+        payment: {
+          amount: Number(payment.amount),
+          currency: payment.currency,
+          method: payment.method,
+          reference: payment.reference,
+          paid_at: payment.paid_at,
+        },
+        student: student ?? null,
+        classe: cls ?? null,
+        fee: fee ?? null,
+        date: new Date(payment.paid_at ?? payment.created_at),
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Téléchargement impossible");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return completed;
@@ -142,9 +192,15 @@ function ReceiptsListPage() {
                     {formatNumber(Number(p.amount || 0))} {p.currency}
                   </p>
                   {rcpt ? (
-                    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-                      <Download className="h-3 w-3" /> Télécharger
-                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDownload(e, p.id, rcpt.id, rcpt.receipt_number)}
+                      disabled={downloadingId === rcpt.id}
+                      className="mt-1 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary disabled:opacity-60"
+                    >
+                      <Download className="h-3 w-3" />
+                      {downloadingId === rcpt.id ? "…" : "Télécharger"}
+                    </button>
                   ) : (
                     <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                       Reçu en cours
