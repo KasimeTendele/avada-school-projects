@@ -64,7 +64,8 @@ export function ReportTemplate({
   page = { current: 1, total: 1 },
 }: Props) {
   return (
-    <div className="report-doc mx-auto bg-white text-[#111] print:shadow-none">
+    <div className="report-doc-wrap mx-auto w-full max-w-full overflow-x-auto print:overflow-visible">
+    <div className="report-doc mx-auto bg-white text-[#111] shadow-sm print:shadow-none">
       {/* Print toolbar (hidden on print) */}
       <div className="no-print sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-neutral-200 bg-white px-4 py-3">
         <button
@@ -215,6 +216,7 @@ export function ReportTemplate({
           tr, td, th { page-break-inside: avoid; break-inside: avoid; }
         }
       `}</style>
+    </div>
     </div>
   );
 }
