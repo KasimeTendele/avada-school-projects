@@ -197,9 +197,25 @@ export function ReportTemplate({
       </footer>
 
       <style>{`
-        .report-doc { width: 210mm; max-width: 100%; min-height: 297mm; }
+        .report-doc { width: 210mm; min-height: 297mm; }
         .report-page { padding: 24px 32px; }
         .report-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        @media screen and (max-width: 820px) {
+          .report-doc-wrap { padding: 0; }
+          .report-doc {
+            transform: scale(var(--report-scale, 0.46));
+            transform-origin: top left;
+            margin: 0;
+          }
+          /* Reserve height so scaled doc doesn't overlap surrounding UI */
+          .report-doc-wrap { height: calc(297mm * var(--report-scale, 0.46) + 24px); }
+        }
+        @media screen and (max-width: 480px) {
+          .report-doc { --report-scale: 0.46; }
+        }
+        @media screen and (min-width: 481px) and (max-width: 820px) {
+          .report-doc { --report-scale: 0.7; }
+        }
         @media print {
           .no-print { display: none !important; }
           @page { size: A4; margin: 0; }
