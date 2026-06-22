@@ -147,6 +147,7 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Blob> {
   doc.rect(0, footerY, pageW, 20, "F");
   doc.setTextColor(255);
   doc.setFontSize(8);
+  const footerTextX = margin + 16;
   let fy = footerY + 6;
   const footerLines = [
     `${(data.school.name ?? "École").split(" ")[0]} : ${loc || "—"}`,
@@ -154,7 +155,7 @@ export async function generateReceiptPdf(data: ReceiptPdfData): Promise<Blob> {
     data.school.email ? `Mail : ${data.school.email}` : null,
   ].filter(Boolean) as string[];
   footerLines.forEach((line) => {
-    doc.text(line, margin, fy);
+    doc.text(line, footerTextX, fy);
     fy += 4;
   });
   if (logoData) {
