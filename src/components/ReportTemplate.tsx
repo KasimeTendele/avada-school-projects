@@ -201,10 +201,19 @@ export function ReportTemplate({
         .report-page { padding: 24px 32px; }
         .report-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         @media screen and (max-width: 820px) {
-          .report-doc { zoom: 0.7; }
+          .report-doc-wrap { padding-bottom: 12px; }
+          .report-doc {
+            transform: scale(var(--report-scale, 1));
+            transform-origin: top left;
+          }
+        }
+        @media screen and (max-width: 820px) {
+          .report-doc-wrap { --report-scale: 0.7; height: calc(297mm * 0.7 + 60px); }
+          .report-doc { --report-scale: 0.7; }
         }
         @media screen and (max-width: 480px) {
-          .report-doc { zoom: 0.46; }
+          .report-doc-wrap { --report-scale: 0.46; height: calc(297mm * 0.46 + 60px); }
+          .report-doc { --report-scale: 0.46; }
         }
         @media print {
           .no-print { display: none !important; }
