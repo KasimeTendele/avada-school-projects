@@ -64,7 +64,8 @@ export function ReportTemplate({
   page = { current: 1, total: 1 },
 }: Props) {
   return (
-    <div className="report-doc mx-auto bg-white text-[#111] print:shadow-none">
+    <div className="report-doc-wrap mx-auto w-full max-w-full overflow-x-auto print:overflow-visible">
+    <div className="report-doc mx-auto bg-white text-[#111] shadow-sm print:shadow-none">
       {/* Print toolbar (hidden on print) */}
       <div className="no-print sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-neutral-200 bg-white px-4 py-3">
         <button
@@ -196,9 +197,24 @@ export function ReportTemplate({
       </footer>
 
       <style>{`
-        .report-doc { width: 210mm; max-width: 100%; min-height: 297mm; }
+        .report-doc { width: 210mm; min-height: 297mm; }
         .report-page { padding: 24px 32px; }
         .report-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        @media screen and (max-width: 820px) {
+          .report-doc-wrap { padding-bottom: 12px; }
+          .report-doc {
+            transform: scale(var(--report-scale, 1));
+            transform-origin: top left;
+          }
+        }
+        @media screen and (max-width: 820px) {
+          .report-doc-wrap { --report-scale: 0.7; height: calc(297mm * 0.7 + 60px); }
+          .report-doc { --report-scale: 0.7; }
+        }
+        @media screen and (max-width: 480px) {
+          .report-doc-wrap { --report-scale: 0.46; height: calc(297mm * 0.46 + 60px); }
+          .report-doc { --report-scale: 0.46; }
+        }
         @media print {
           .no-print { display: none !important; }
           @page { size: A4; margin: 0; }
@@ -215,6 +231,7 @@ export function ReportTemplate({
           tr, td, th { page-break-inside: avoid; break-inside: avoid; }
         }
       `}</style>
+    </div>
     </div>
   );
 }
