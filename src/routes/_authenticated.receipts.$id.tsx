@@ -80,6 +80,7 @@ function ReceiptPage() {
             <tr className="bg-neutral-100">
               <th className="border border-neutral-300 px-2 py-2 text-left">No</th>
               <th className="border border-neutral-300 px-2 py-2 text-left">ÉLÈVE</th>
+              <th className="border border-neutral-300 px-2 py-2 text-left">MOTIF</th>
               <th className="border border-neutral-300 px-2 py-2 text-left">REÇU</th>
               <th className="border border-neutral-300 px-2 py-2 text-left">DATE</th>
               <th className="border border-neutral-300 px-2 py-2 text-left">MONTANT</th>
@@ -91,6 +92,7 @@ function ReceiptPage() {
             <tr>
               <td className="border border-neutral-300 px-2 py-2">01</td>
               <td className="border border-neutral-300 px-2 py-2">{student ? `${student.first_name} ${student.last_name}`.toUpperCase() : "—"}</td>
+              <td className="border border-neutral-300 px-2 py-2">{fee?.label ?? "—"}</td>
               <td className="border border-neutral-300 px-2 py-2">{receipt.receipt_number}</td>
               <td className="border border-neutral-300 px-2 py-2">{date.toLocaleDateString("fr-FR")}</td>
               <td className="border border-neutral-300 px-2 py-2">{formatNumber(Number(payment.amount))},00</td>
