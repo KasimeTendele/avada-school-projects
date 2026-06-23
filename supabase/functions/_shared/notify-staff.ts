@@ -87,9 +87,10 @@ export async function notifyStaffOfPayment(args: {
     if (recipients.size === 0) return;
 
     const who = studentName ? ` pour ${studentName}` : "";
+    const cls = className ? ` — ${className}` : "";
     const where = schoolName ? ` (${schoolName})` : "";
     const title = "Nouveau paiement reçu";
-    const message = `Paiement de ${args.amount} ${args.currency}${who}${where} confirmé.`;
+    const message = `Paiement de ${args.amount} ${args.currency}${who}${cls}${where} confirmé.`;
 
     const rows = Array.from(recipients).map((uid) => ({
       user_id: uid,
@@ -100,6 +101,7 @@ export async function notifyStaffOfPayment(args: {
         paymentId: args.paymentId,
         studentId: args.studentId ?? null,
         studentName,
+        className,
         schoolId: args.schoolId,
         schoolName,
         feeId: args.feeId ?? null,
