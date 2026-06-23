@@ -1,6 +1,7 @@
 import { adminClient } from "../_shared/auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { signPayload } from "../_shared/avadapay.ts";
+import { notifyStaffOfPayment } from "../_shared/notify-staff.ts";
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
   const admin = adminClient();
   const { data: payment } = await admin
     .from("payments")
-    .select("id, status, school_id, student_id, fee_id, amount, currency, initiated_by")
+    .select("id, status, school_id, student_id, fee_id, amount, currency, method, reference, initiated_by")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -112,6 +113,19 @@ Deno.serve(async (req) => {
       data: { paymentId: payment.id, receiptId: receipt?.id },
     });
   }
+
+  await notifyStaffOfPayment({
+    paymentId: payment.id,
+    schoolId: payment.school_id,
+    studentId: payment.student_id,
+    feeId: payment.fee_id,
+    amount: payment.amount,
+    currency: payment.currency,
+    method: payment.method,
+    reference: payload.transaction_id ?? payment.reference ?? null,
+    receiptId: receipt?.id ?? null,
+    initiatedBy: payment.initiated_by,
+  });
 
   return json(200, { success: true, message: "Payment completed" });
 });
