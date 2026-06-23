@@ -3,6 +3,7 @@ import { requireAuth, adminClient, hasAnyRole } from "../_shared/auth.ts";
 import { ok, paginated, errors } from "../_shared/response.ts";
 import { applyFilters, applySort, parseListParams } from "../_shared/list-params.ts";
 import { notifyStaffOfPayment } from "../_shared/notify-staff.ts";
+import { enrichPayments, groupBy } from "../_shared/payment-enrich.ts";
 import {
   detectProvider,
   formatPhoneForProvider,
@@ -145,6 +146,61 @@ router.get("/", async (req) => {
   if (error) return errors.internal(error.message);
   return paginated(data ?? [], params.page, params.limit, count ?? 0);
 });
+
+// ---- Reports ----------------------------------------------------------------
+// Rapports de paiements pour admin école, caissier et super admin.
+// Par défaut : 90 derniers jours, paiements COMPLETED.
+// Filtres via query: ?from=YYYY-MM-DD&to=YYYY-MM-DD&school_id=...&status=COMPLETED
+// Le scope est appliqué via RLS (ctx.client) :
+//  - super_admin → toutes écoles
+//  - admin école → ses écoles
+//  - cashier    → son école (primary_school_id)
+async function buildReport(req: Request, groupKey: "school" | "class") {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+  if (!hasAnyRole(ctx, ["super_admin", "admin", "cashier"])) {
+    return errors.scopeForbidden("Accès réservé au personnel.");
+  }
+
+  const url = new URL(req.url);
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  const schoolId = url.searchParams.get("school_id");
+  const status = url.searchParams.get("status") ?? "COMPLETED";
+
+  let q = ctx.client
+    .from("payments")
+    .select("id,fee_id,student_id,school_id,initiated_by,amount,currency,method,status,reference,paid_at,created_at")
+    .order("paid_at", { ascending: false })
+    .limit(2000);
+
+  if (status && status !== "ALL") q = q.eq("status", status);
+  if (schoolId) q = q.eq("school_id", schoolId);
+  if (from) q = q.gte("created_at", from);
+  if (to) q = q.lte("created_at", to);
+
+  const { data, error } = await q;
+  if (error) return errors.internal(error.message);
+
+  const enriched = await enrichPayments((data ?? []) as Array<Record<string, unknown>>);
+  const groups = groupBy(enriched, groupKey);
+
+  const totals: Record<string, number> = {};
+  for (const r of enriched) totals[r.currency] = (totals[r.currency] ?? 0) + r.amount;
+
+  return ok({
+    groupBy: groupKey,
+    range: { from: from ?? null, to: to ?? null },
+    status,
+    school_id: schoolId,
+    count: enriched.length,
+    totals,
+    groups,
+  });
+}
+
+router.get("/reports/by-school", (req) => buildReport(req, "school"));
+router.get("/reports/by-class", (req) => buildReport(req, "class"));
 
 // GET /payments/:id — fetch one payment with its receipt (used for polling)
 router.get("/:id", async (req, params) => {
