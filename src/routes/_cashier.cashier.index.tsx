@@ -87,6 +87,11 @@ function CashierHome() {
     queryFn: () => apiFetch<CashierDash>(`/cashier-dashboard/${schoolId}`),
   });
 
+  const notifSummary = useQuery({
+    queryKey: ["notifications-dashboard"],
+    queryFn: () => apiFetch<{ unread_count: number }>("/notifications/dashboard"),
+  });
+
   const studentsQ = useQuery({
     enabled: !!schoolId,
     queryKey: ["students-mini", schoolId],
@@ -166,7 +171,7 @@ function CashierHome() {
             <IconBtn label="Thème"><Moon className="h-4 w-4" /></IconBtn>
             <IconBtn label="Langue"><Globe className="h-4 w-4" /></IconBtn>
             <IconBtn label="Messages" badge={3}><Mail className="h-4 w-4" /></IconBtn>
-            <IconBtn label="Notifications" badge={dash?.pending.count}><Bell className="h-4 w-4" /></IconBtn>
+            <IconBtn label="Notifications" badge={notifSummary.data?.unread_count ?? 0}><Bell className="h-4 w-4" /></IconBtn>
 
             <Link
               to={"/cashier/profile" as "/cashier"}
