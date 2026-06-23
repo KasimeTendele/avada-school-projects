@@ -58,13 +58,24 @@ export async function notifyStaffOfPayment(args: {
       schoolName = school?.name ?? null;
     }
 
+    let className: string | null = null;
     if (args.studentId) {
       const { data: student } = await admin
         .from("students")
-        .select("first_name,last_name")
+        .select("first_name,last_name,class_id")
         .eq("id", args.studentId)
         .maybeSingle();
-      if (student) studentName = `${student.first_name} ${student.last_name}`.trim();
+      if (student) {
+        studentName = `${student.first_name} ${student.last_name}`.trim();
+        if (student.class_id) {
+          const { data: cls } = await admin
+            .from("classes")
+            .select("name,level")
+            .eq("id", student.class_id)
+            .maybeSingle();
+          if (cls) className = [cls.level, cls.name].filter(Boolean).join(" ") || cls.name;
+        }
+      }
     }
 
     // Recipients uniques
