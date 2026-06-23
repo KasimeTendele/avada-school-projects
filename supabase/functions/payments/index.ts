@@ -2,6 +2,7 @@ import { Router } from "../_shared/router.ts";
 import { requireAuth, adminClient, hasAnyRole } from "../_shared/auth.ts";
 import { ok, paginated, errors } from "../_shared/response.ts";
 import { applyFilters, applySort, parseListParams } from "../_shared/list-params.ts";
+import { notifyStaffOfPayment } from "../_shared/notify-staff.ts";
 import {
   detectProvider,
   formatPhoneForProvider,
@@ -28,7 +29,7 @@ async function reconcilePending(paymentId: string) {
   const admin = adminClient();
   const { data: payment } = await admin
     .from("payments")
-    .select("id, status, method, amount, currency, initiated_by, school_id, student_id, fee_id")
+    .select("id, status, method, amount, currency, initiated_by, school_id, student_id, fee_id, reference")
     .eq("id", paymentId)
     .maybeSingle();
   if (!payment) return null;
@@ -96,6 +97,20 @@ async function reconcilePending(paymentId: string) {
       data: { paymentId: payment.id, receiptId: receipt?.id },
     });
   }
+
+  await notifyStaffOfPayment({
+    paymentId: payment.id,
+    schoolId: payment.school_id,
+    studentId: payment.student_id,
+    feeId: payment.fee_id,
+    amount: payment.amount,
+    currency: payment.currency,
+    method: payment.method,
+    reference: txnId ?? payment.reference ?? null,
+    receiptId: receipt?.id ?? null,
+    initiatedBy: payment.initiated_by,
+  });
+
   return claimed;
 }
 
@@ -363,6 +378,19 @@ router.post("/initiate", async (req) => {
       data: { paymentId: payment.id, receiptId: receipt?.id },
     });
   }
+
+  await notifyStaffOfPayment({
+    paymentId: payment.id,
+    schoolId: payment.school_id,
+    studentId: payment.student_id,
+    feeId: payment.fee_id,
+    amount: payment.amount,
+    currency: payment.currency,
+    method: payment.method,
+    reference: payment.reference,
+    receiptId: receipt?.id ?? null,
+    initiatedBy: ctx.userId,
+  });
 
   return ok({ payment, receipt, checkoutUrl: null }, 201, "Payment initiated");
 });
