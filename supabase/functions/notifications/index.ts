@@ -23,6 +23,28 @@ router.get("/", async (req) => {
   return paginated(data ?? [], params.page, params.limit, count ?? 0);
 });
 
+router.get("/dashboard", async (req) => {
+  const ctx = await requireAuth(req);
+  if (ctx instanceof Response) return ctx;
+
+  const { count, error: countErr } = await ctx.client
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", ctx.userId)
+    .eq("read", false);
+  if (countErr) return errors.internal(countErr.message);
+
+  const { data, error } = await ctx.client
+    .from("notifications")
+    .select("*")
+    .eq("user_id", ctx.userId)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  if (error) return errors.internal(error.message);
+
+  return ok({ unread_count: count ?? 0, recent: data ?? [] });
+});
+
 router.patch("/read-all", async (req) => {
   const ctx = await requireAuth(req);
   if (ctx instanceof Response) return ctx;
