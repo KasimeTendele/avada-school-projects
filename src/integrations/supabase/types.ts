@@ -81,6 +81,108 @@ export type Database = {
           },
         ]
       }
+      demo_request_config: {
+        Row: {
+          features: Json
+          form_options: Json
+          id: number
+          page: Json
+          testimonials: Json
+          trusted_schools: Json
+          updated_at: string
+        }
+        Insert: {
+          features?: Json
+          form_options?: Json
+          id?: number
+          page?: Json
+          testimonials?: Json
+          trusted_schools?: Json
+          updated_at?: string
+        }
+        Update: {
+          features?: Json
+          form_options?: Json
+          id?: number
+          page?: Json
+          testimonials?: Json
+          trusted_schools?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      demo_requests: {
+        Row: {
+          admin_notes: string | null
+          city: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          contact_role: string
+          created_at: string
+          demo_mode: string
+          existing_system_name: string | null
+          has_existing_system: boolean
+          id: string
+          message: string | null
+          other_problem: string | null
+          preferred_date: string
+          preferred_time: string
+          problems: Json
+          school_name: string
+          school_type: string
+          status: string
+          student_count: number
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          city: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          contact_role: string
+          created_at?: string
+          demo_mode: string
+          existing_system_name?: string | null
+          has_existing_system?: boolean
+          id?: string
+          message?: string | null
+          other_problem?: string | null
+          preferred_date: string
+          preferred_time: string
+          problems?: Json
+          school_name: string
+          school_type: string
+          status?: string
+          student_count: number
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          city?: string
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string
+          contact_role?: string
+          created_at?: string
+          demo_mode?: string
+          existing_system_name?: string | null
+          has_existing_system?: boolean
+          id?: string
+          message?: string | null
+          other_problem?: string | null
+          preferred_date?: string
+          preferred_time?: string
+          problems?: Json
+          school_name?: string
+          school_type?: string
+          status?: string
+          student_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fees: {
         Row: {
           academic_year: string | null
