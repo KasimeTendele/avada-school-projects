@@ -1,4 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createLogger } from "../_shared/whatsapp/logger.ts";
+import { verifyMetaSignature } from "../_shared/whatsapp/meta.ts";
+import { routeWebhookPayload } from "../_shared/whatsapp/router.ts";
+
+const log = createLogger("whatsapp-webhook");
 
 /**
  * Edge Function : whatsapp-webhook
@@ -104,6 +109,19 @@ async function handleWebhookEvent(request: Request): Promise<Response> {
   try {
     const rawBody = await request.text();
 
+    // Verify Meta signature (HMAC-SHA256 with META_APP_SECRET).
+    const signature =
+      request.headers.get("x-hub-signature-256") ??
+      request.headers.get("x-hub-signature");
+    const signatureOk = await verifyMetaSignature(rawBody, signature);
+    if (!signatureOk) {
+      log.warn("Invalid Meta signature — rejecting payload");
+      return new Response("Forbidden", {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "text/plain" },
+      });
+    }
+
     let payload: Record<string, unknown> | null = null;
     try {
       payload = rawBody ? JSON.parse(rawBody) : null;
@@ -118,12 +136,14 @@ async function handleWebhookEvent(request: Request): Promise<Response> {
       body: payload ?? rawBody,
     });
 
-    // TODO : lire et parser les messages entrants (entry[].changes[].value.messages[]).
-    // TODO : gérer les conversations / sessions utilisateur (Redis/DB).
-    // TODO : appeler les Edge Functions métier existantes si nécessaire
-    //        (ex: auth, parents, paiements, notifications).
-    // TODO : envoyer les réponses via WhatsApp Cloud API
-    //        (POST https://graph.facebook.com/v18.0/<PHONE_NUMBER_ID>/messages).
+    // Dispatch to the router (fire-and-forget: ACK Meta immediately).
+    if (payload && typeof payload === "object") {
+      queueMicrotask(() => {
+        routeWebhookPayload(payload as never).catch((err) => {
+          log.error("Router failed", { err: (err as Error).message });
+        });
+      });
+    }
 
     return new Response("EVENT_RECEIVED", {
       status: 200,

@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.whatsapp-webhook]
 verify_jwt = false
+
+[functions.whatsapp-router]
+verify_jwt = false
+
+[functions.whatsapp-send]
+verify_jwt = false
+
+[functions.whatsapp-session]
+verify_jwt = false
+
+[functions.whatsapp-menu]
+verify_jwt = false
