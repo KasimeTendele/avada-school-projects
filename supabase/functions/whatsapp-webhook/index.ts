@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createLogger } from "../_shared/whatsapp/logger.ts";
 import { verifyMetaSignature } from "../_shared/whatsapp/meta.ts";
-import { routeWebhookPayload } from "../whatsapp-router/index.ts";
+import { routeWebhookPayload } from "../_shared/whatsapp/router.ts";
 
 const log = createLogger("whatsapp-webhook");
 
