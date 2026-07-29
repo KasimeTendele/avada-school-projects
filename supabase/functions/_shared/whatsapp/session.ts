@@ -1,7 +1,7 @@
 import { SESSION_TTL_MINUTES } from "./constants.ts";
 import { createLogger } from "./logger.ts";
 import { getSupabase } from "./supabase.ts";
-import type { SessionState, WhatsAppSession } from "./types.ts";
+import type { SessionState, WhatsAppSession, WhatsAppSessionPayload } from "./types.ts";
 
 const log = createLogger("whatsapp:session");
 const TABLE = "whatsapp_sessions";
@@ -32,4 +32,31 @@ export async function touchSession(phone: string): Promise<void> {
 }
 export async function closeSession(phone: string): Promise<void> {
   await getSupabase().from(TABLE).update({ state: "closed" as SessionState, current_menu: null, payload: {} }).eq("phone_number", phone);
+}
+
+/** Typed accessor for the JSONB payload. */
+export function getPayload(session: WhatsAppSession | null): WhatsAppSessionPayload {
+  return (session?.payload as WhatsAppSessionPayload | undefined) ?? {};
+}
+
+/** Merge a partial payload into the session and persist it. */
+export async function updatePayload(
+  phone: string,
+  patch: Partial<WhatsAppSessionPayload>,
+  extra?: { state?: SessionState; current_menu?: string | null },
+): Promise<WhatsAppSession> {
+  const current = await getSession(phone);
+  const nextPayload = { ...getPayload(current), ...patch };
+  return upsertSession(phone, {
+    state: extra?.state ?? current?.state ?? "idle",
+    current_menu: extra?.current_menu ?? current?.current_menu ?? null,
+    payload: nextPayload as Record<string, unknown>,
+  });
+}
+
+/** True when the session holds a non-expired authenticated user. */
+export function isAuthenticated(session: WhatsAppSession | null): boolean {
+  const auth = getPayload(session).auth;
+  if (!auth?.user_id || !auth.access_token) return false;
+  return true;
 }
