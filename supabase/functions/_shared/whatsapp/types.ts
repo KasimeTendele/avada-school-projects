@@ -125,10 +125,37 @@ export interface WhatsAppWebhookPayload {
 
 export type SessionState =
   | "idle"
+  | "awaiting_email"
+  | "awaiting_password"
   | "in_menu"
   | "awaiting_input"
   | "awaiting_payment"
-  | "closed";
+  | "closed"
+  | string;
+
+export interface WhatsAppAuthState {
+  user_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  access_token: string;
+  refresh_token: string;
+  login_time: string;
+}
+
+export interface WhatsAppFlowState {
+  name: "payment" | "password" | "fees";
+  step: string;
+  data: Record<string, unknown>;
+}
+
+export interface WhatsAppSessionPayload {
+  auth?: WhatsAppAuthState;
+  pending_email?: string;
+  login_attempts?: number;
+  flow?: WhatsAppFlowState;
+  [key: string]: unknown;
+}
 
 export interface WhatsAppSession {
   id: string;

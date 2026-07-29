@@ -1,10 +1,25 @@
-import { ACTIONS } from "./constants.ts";
+import { ACTIONS, MENU_IDS } from "./constants.ts";
 import { createLogger } from "./logger.ts";
 import { handleMenuSelection, showHomeMenu } from "./menu.ts";
 import { MESSAGES } from "./messages.ts";
 import { buildText, sendMessage } from "./send.ts";
-import { closeSession, getSession, touchSession, upsertSession } from "./session.ts";
+import {
+  getPayload,
+  getSession,
+  isAuthenticated,
+  touchSession,
+  updatePayload,
+} from "./session.ts";
 import type { WhatsAppIncomingMessage, WhatsAppWebhookPayload } from "./types.ts";
+import {
+  handleEmailInput,
+  handlePasswordInput,
+  startAuthFlow,
+} from "./flows/auth.ts";
+import { handlePasswordFlow } from "./flows/password.ts";
+import { handleFeesChildSelected } from "./flows/fees.ts";
+import { handlePaymentFlow, startPaymentFlow } from "./flows/payment.ts";
+import { logoutUser } from "./flows/logout.ts";
 
 const log = createLogger("whatsapp:router");
 
@@ -23,33 +38,75 @@ function extractIntent(msg: WhatsAppIncomingMessage):
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-export async function routeIncomingMessage(msg: WhatsAppIncomingMessage, profileName?: string): Promise<void> {
+export async function routeIncomingMessage(
+  msg: WhatsAppIncomingMessage,
+  _profileName?: string,
+): Promise<void> {
   const phone = msg.from;
   const intent = extractIntent(msg);
   await touchSession(phone);
   const session = await getSession(phone);
-  log.info("Routing", { phone, type: msg.type, intent: intent.kind, state: session?.state ?? "new" });
+  const payload = getPayload(session);
+  const state = session?.state ?? "new";
+  log.info("Routing", { phone, type: msg.type, intent: intent.kind, state });
 
+  // ---------------- Global text commands ----------------
   if (intent.kind === "text") {
     const t = norm(intent.value);
+    if (["logout", "deconnexion"].includes(t)) return logoutUser(phone);
     if (t === ACTIONS.CANCEL || t === "annuler") {
-      await closeSession(phone);
+      await updatePayload(phone, { flow: undefined }, { state: "in_menu", current_menu: MENU_IDS.HOME });
       await sendMessage(buildText(phone, MESSAGES.CANCELLED));
-      return;
+      if (isAuthenticated(session)) return showHomeMenu(phone);
+      return startAuthFlow(phone);
     }
-    if (["back", "retour", "menu", "home", "accueil"].includes(t)) {
-      await showHomeMenu(phone, profileName);
-      return;
+    if (["menu", "home", "accueil", "retour", "back"].includes(t)) {
+      if (isAuthenticated(session)) return showHomeMenu(phone);
+      return startAuthFlow(phone);
     }
   }
+
+  // ---------------- Authentication gate ----------------
+  if (!isAuthenticated(session)) {
+    if (state === "awaiting_email" && intent.kind === "text") {
+      return handleEmailInput(phone, intent.value);
+    }
+    if (state === "awaiting_password" && intent.kind === "text") {
+      return handlePasswordInput(phone, intent.value);
+    }
+    if (session && state === "closed") {
+      await sendMessage(buildText(phone, MESSAGES.SESSION_EXPIRED));
+      return startAuthFlow(phone, false);
+    }
+    return startAuthFlow(phone, true);
+  }
+
+  // ---------------- Authenticated flows ----------------
+  const flow = payload.flow;
+
+  if (intent.kind === "menu" && intent.value.startsWith(`${ACTIONS.PAY_NOW}:`)) {
+    const studentId = intent.value.slice(ACTIONS.PAY_NOW.length + 1);
+    return startPaymentFlow(phone, studentId);
+  }
+  if (intent.kind === "menu" && intent.value.startsWith("fees:child:")) {
+    const studentId = intent.value.slice("fees:child:".length);
+    return handleFeesChildSelected(phone, studentId);
+  }
+
+  if (flow?.name === "payment") {
+    if (intent.kind === "unknown") {
+      await sendMessage(buildText(phone, MESSAGES.UNKNOWN_COMMAND));
+      return;
+    }
+    return handlePaymentFlow(phone, intent as { kind: "text" | "menu"; value: string });
+  }
+  if (flow?.name === "password" && intent.kind === "text") {
+    return handlePasswordFlow(phone, intent.value);
+  }
+
   if (intent.kind === "menu") return handleMenuSelection(phone, intent.value);
-  if (!session) return showHomeMenu(phone, profileName);
-  if (intent.kind === "text") {
-    await sendMessage(buildText(phone, MESSAGES.UNKNOWN_COMMAND));
-    await upsertSession(phone, { state: session.state, current_menu: session.current_menu, payload: session.payload });
-    return;
-  }
-  await sendMessage(buildText(phone, MESSAGES.UNKNOWN_COMMAND));
+
+  return showHomeMenu(phone);
 }
 
 export async function routeWebhookPayload(payload: WhatsAppWebhookPayload): Promise<void> {

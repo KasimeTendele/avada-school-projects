@@ -857,6 +857,42 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_users: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_connected_at: string
+          first_name: string | null
+          last_connected_at: string
+          last_name: string | null
+          phone_number: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_connected_at?: string
+          first_name?: string | null
+          last_connected_at?: string
+          last_name?: string | null
+          phone_number: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_connected_at?: string
+          first_name?: string | null
+          last_connected_at?: string
+          last_name?: string | null
+          phone_number?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
