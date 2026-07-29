@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.whatsapp-menu]
 verify_jwt = false
+
+[functions.whatsapp-reminders]
+verify_jwt = true
