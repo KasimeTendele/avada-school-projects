@@ -61,7 +61,7 @@ export interface ToolResult {
 
 export interface ToolHandler {
   name: string;
-  description: string
+  description: string;
   parameters: Record<string, unknown>;
   /** Requiert une session parent authentifiée. */
   requiresAuth: boolean;
