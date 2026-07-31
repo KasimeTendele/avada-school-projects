@@ -20,6 +20,7 @@ import { handlePasswordFlow } from "./flows/password.ts";
 import { handleFeesChildSelected } from "./flows/fees.ts";
 import { handlePaymentFlow, startPaymentFlow } from "./flows/payment.ts";
 import { logoutUser } from "./flows/logout.ts";
+import { askAssistant } from "./assistant.ts";
 
 const log = createLogger("whatsapp:router");
 
@@ -105,6 +106,12 @@ export async function routeIncomingMessage(
   }
 
   if (intent.kind === "menu") return handleMenuSelection(phone, intent.value);
+
+  // Langage naturel : délégué à l'assistant IA (Edge Function `ai-assistant`).
+  if (intent.kind === "text") {
+    const handled = await askAssistant(phone, intent.value);
+    if (handled) return;
+  }
 
   return showHomeMenu(phone);
 }
