@@ -25,7 +25,8 @@ function env(name: string, fallback = ""): string {
 
 export function getOpenAIConfig(): OpenAIConfig {
   return {
-    apiKey: env("OPENAI_API_KEY"),
+    // Gemini d'abord (endpoint compatible OpenAI), repli sur l'ancienne clé OpenAI.
+    apiKey: env("GEMINI_API_KEY") || env("OPENAI_API_KEY"),
     baseUrl: env("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai"),
     model: env("OPENAI_MODEL", "gemini-2.5-flash"),
     fallbackModel: env("OPENAI_FALLBACK_MODEL", "gemini-2.5-flash-lite"),
@@ -39,6 +40,6 @@ export function getOpenAIConfig(): OpenAIConfig {
 }
 
 export function assertOpenAIConfig(cfg = getOpenAIConfig()): OpenAIConfig {
-  if (!cfg.apiKey) throw new Error("Missing secret: OPENAI_API_KEY");
+  if (!cfg.apiKey) throw new Error("Missing secret: GEMINI_API_KEY");
   return cfg;
 }
