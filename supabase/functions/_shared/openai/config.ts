@@ -28,8 +28,8 @@ export function getOpenAIConfig(): OpenAIConfig {
     // Gemini d'abord (endpoint compatible OpenAI), repli sur l'ancienne clé OpenAI.
     apiKey: env("GEMINI_API_KEY") || env("OPENAI_API_KEY"),
     baseUrl: env("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai"),
-    model: env("OPENAI_MODEL", "gemini-2.5-flash"),
-    fallbackModel: env("OPENAI_FALLBACK_MODEL", "gemini-2.5-flash-lite"),
+    model: env("OPENAI_MODEL", "gemini-3.5-flash"),
+    fallbackModel: env("OPENAI_FALLBACK_MODEL", "gemini-3.5-flash-lite"),
     temperature: Number(env("OPENAI_TEMPERATURE", "0.2")),
     maxOutputTokens: Number(env("OPENAI_MAX_TOKENS", "700")),
     maxToolRounds: Number(env("OPENAI_MAX_TOOL_ROUNDS", "4")),
