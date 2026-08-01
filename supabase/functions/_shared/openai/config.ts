@@ -1,6 +1,7 @@
 /**
- * Centralised OpenAI configuration. Never hard-code keys — everything comes
- * from Supabase secrets. Values are read lazily so a cold start never throws.
+ * Configuration centralisée du fournisseur LLM (compatible API OpenAI).
+ * Par défaut : Google Gemini via son endpoint compatible OpenAI.
+ * Aucune clé en dur — tout vient des secrets. Lecture paresseuse.
  */
 export interface OpenAIConfig {
   apiKey: string;
@@ -25,9 +26,9 @@ function env(name: string, fallback = ""): string {
 export function getOpenAIConfig(): OpenAIConfig {
   return {
     apiKey: env("OPENAI_API_KEY"),
-    baseUrl: env("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-    model: env("OPENAI_MODEL", "gpt-4.1-mini"),
-    fallbackModel: env("OPENAI_FALLBACK_MODEL", "gpt-4o-mini"),
+    baseUrl: env("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai"),
+    model: env("OPENAI_MODEL", "gemini-2.5-flash"),
+    fallbackModel: env("OPENAI_FALLBACK_MODEL", "gemini-2.5-flash-lite"),
     temperature: Number(env("OPENAI_TEMPERATURE", "0.2")),
     maxOutputTokens: Number(env("OPENAI_MAX_TOKENS", "700")),
     maxToolRounds: Number(env("OPENAI_MAX_TOOL_ROUNDS", "4")),
