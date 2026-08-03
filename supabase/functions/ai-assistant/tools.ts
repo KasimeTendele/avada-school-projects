@@ -8,7 +8,7 @@
 import { callBusinessFunction } from "../_shared/whatsapp/api.ts";
 import { HOME_MENU_ITEMS, MENU_IDS } from "../_shared/whatsapp/constants.ts";
 import { MESSAGES } from "../_shared/whatsapp/messages.ts";
-import { buildList, buildText, sendMessage } from "../_shared/whatsapp/send.ts";
+import { buildList, sendMessage } from "../_shared/whatsapp/send.ts";
 import { updatePayload } from "../_shared/whatsapp/session.ts";
 import { startAuthFlow } from "../_shared/whatsapp/flows/auth.ts";
 import { fetchChildren, fetchFees } from "../_shared/whatsapp/flows/fees.ts";
