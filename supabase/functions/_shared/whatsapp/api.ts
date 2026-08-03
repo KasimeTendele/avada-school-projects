@@ -14,6 +14,8 @@ export interface CallOptions {
   body?: unknown;
   accessToken?: string | null;
   query?: Record<string, string | number | undefined>;
+  /** Hard deadline; aborts the call so the caller can fall back fast. */
+  timeoutMs?: number;
 }
 
 export interface CallResult<T> {
@@ -46,11 +48,16 @@ export async function callBusinessFunction<T = unknown>(
   else headers["Authorization"] = `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`;
 
   try {
+    const controller = new AbortController();
+    const timer = opts.timeoutMs
+      ? setTimeout(() => controller.abort(), opts.timeoutMs)
+      : undefined;
     const res = await fetch(url, {
       method,
       headers,
       body: method === "GET" || opts.body === undefined ? undefined : JSON.stringify(opts.body),
-    });
+      signal: controller.signal,
+    }).finally(() => { if (timer) clearTimeout(timer); });
     const text = await res.text();
     let json: unknown = null;
     try { json = text ? JSON.parse(text) : null; } catch { /* not JSON */ }
