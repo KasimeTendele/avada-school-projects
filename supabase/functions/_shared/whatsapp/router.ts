@@ -39,9 +39,15 @@ function extractIntent(msg: WhatsAppIncomingMessage):
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
+const GREETINGS = [
+  "bonjour", "bonsoir", "salut", "hello", "hi", "hey", "coucou",
+  "bjr", "bsr", "salam", "jambo", "mbotema", "start", "debut",
+];
+const isGreeting = (t: string) => GREETINGS.includes(t);
+
 export async function routeIncomingMessage(
   msg: WhatsAppIncomingMessage,
-  _profileName?: string,
+  profileName?: string,
 ): Promise<void> {
   const phone = msg.from;
   const intent = extractIntent(msg);
@@ -54,6 +60,18 @@ export async function routeIncomingMessage(
   // ---------------- Global text commands ----------------
   if (intent.kind === "text") {
     const t = norm(intent.value);
+    // Salutations : réponse instantanée, sans passer par l'IA (latence nulle).
+    if (isGreeting(t)) {
+      const name = payload.auth?.first_name ?? profileName?.split(" ")[0];
+      await sendMessage(
+        buildText(
+          phone,
+          `👋 Bonjour${name ? ` *${name}*` : ""}, bienvenue sur *AvadaSchool* !`,
+        ),
+      );
+      if (isAuthenticated(session)) return showHomeMenu(phone, payload.auth?.first_name);
+      return startAuthFlow(phone, false);
+    }
     if (["logout", "deconnexion"].includes(t)) return logoutUser(phone);
     if (t === ACTIONS.CANCEL || t === "annuler") {
       await updatePayload(phone, { flow: undefined }, { state: "in_menu", current_menu: MENU_IDS.HOME });
