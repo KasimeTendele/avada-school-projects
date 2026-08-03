@@ -79,6 +79,12 @@ export async function routeIncomingMessage(
       await sendMessage(buildText(phone, MESSAGES.SESSION_EXPIRED));
       return startAuthFlow(phone, false);
     }
+    // Parent non connecté qui écrit librement : l'assistant peut le renseigner
+    // (services, assistance, mot de passe oublié) et le guider vers la connexion.
+    if (session && intent.kind === "text") {
+      const handled = await askAssistant(phone, intent.value);
+      if (handled) return;
+    }
     return startAuthFlow(phone, true);
   }
 
