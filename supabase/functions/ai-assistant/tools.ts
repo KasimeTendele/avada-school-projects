@@ -6,7 +6,11 @@
  * Ajouter un outil = ajouter une entrée dans TOOLS (nom, schéma, run).
  */
 import { callBusinessFunction } from "../_shared/whatsapp/api.ts";
-import { MENU_IDS } from "../_shared/whatsapp/constants.ts";
+import { HOME_MENU_ITEMS, MENU_IDS } from "../_shared/whatsapp/constants.ts";
+import { MESSAGES } from "../_shared/whatsapp/messages.ts";
+import { buildList, buildText, sendMessage } from "../_shared/whatsapp/send.ts";
+import { updatePayload } from "../_shared/whatsapp/session.ts";
+import { startAuthFlow } from "../_shared/whatsapp/flows/auth.ts";
 import { fetchChildren, fetchFees } from "../_shared/whatsapp/flows/fees.ts";
 import { startPaymentFlow } from "../_shared/whatsapp/flows/payment.ts";
 import type { ChatToolDefinition } from "../_shared/openai/responses.ts";
@@ -22,6 +26,88 @@ function token(ctx: AssistantContext): string | null {
 }
 
 export const TOOLS: ToolHandler[] = [
+  {
+    name: "getAuthStatus",
+    description:
+      "Indique si le parent est actuellement connecté à AvadaSchool, avec son nom et son e-mail si disponible. " +
+      "À utiliser dès qu'il faut savoir ce qui est accessible avant de proposer un service.",
+    requiresAuth: false,
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+    run: (_args, ctx) =>
+      Promise.resolve({
+        ok: true,
+        data: {
+          authenticated: ctx.authenticated,
+          firstName: ctx.firstName ?? null,
+          lastName: ctx.lastName ?? null,
+          email: ctx.authenticated ? ctx.email ?? null : null,
+          currentMenu: ctx.currentMenu ?? null,
+        },
+      }),
+  },
+  {
+    name: "listServices",
+    description:
+      "Retourne la liste complète des menus et services AvadaSchool disponibles sur WhatsApp " +
+      "(titre, description, disponibilité selon l'état de connexion). Utiliser quand le parent demande " +
+      "ce que l'assistant peut faire, les services, ou le menu, pour décrire l'offre en texte.",
+    requiresAuth: false,
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+    run: (_args, ctx) =>
+      Promise.resolve({
+        ok: true,
+        data: {
+          authenticated: ctx.authenticated,
+          services: HOME_MENU_ITEMS.map((item) => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            available: ctx.authenticated || item.id === MENU_IDS.HELP,
+          })),
+        },
+      }),
+  },
+  {
+    name: "showMenu",
+    description:
+      "Envoie au parent connecté le menu interactif AvadaSchool avec tous les services cliquables. " +
+      "À utiliser quand il demande le menu, la liste des services ou souhaite choisir une action.",
+    requiresAuth: true,
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+    async run(_args, ctx) {
+      if (!ctx.authenticated) return AUTH_REQUIRED;
+      await sendMessage(
+        buildList(ctx.phone, MESSAGES.MENU_TITLE, MESSAGES.MENU_BUTTON, [
+          { title: "AvadaSchool", rows: HOME_MENU_ITEMS },
+        ]),
+      );
+      await updatePayload(
+        ctx.phone,
+        { flow: undefined },
+        { state: "in_menu", current_menu: MENU_IDS.HOME },
+      );
+      return {
+        ok: true,
+        data: { sent: true, note: "Le menu interactif a été envoyé : invitez le parent à choisir une option." },
+        openMenu: MENU_IDS.HOME,
+      };
+    },
+  },
+  {
+    name: "startLogin",
+    description:
+      "Démarre le parcours de connexion sécurisé AvadaSchool (demande l'e-mail puis le mot de passe dans le " +
+      "parcours officiel). À utiliser uniquement si le parent n'est pas connecté. Ne demandez jamais le mot de passe vous-même.",
+    requiresAuth: false,
+    async run(_args, ctx) {
+      if (ctx.authenticated) {
+        return { ok: true, data: { alreadyAuthenticated: true } };
+      }
+      await startAuthFlow(ctx.phone, false);
+      return { ok: true, data: { started: true, note: "Le parcours de connexion sécurisé a été envoyé au parent." } };
+    },
+    parameters: { type: "object", properties: {}, additionalProperties: false },
+  },
   {
     name: "getChildren",
     description:
