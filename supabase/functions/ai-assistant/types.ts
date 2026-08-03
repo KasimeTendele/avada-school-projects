@@ -4,6 +4,7 @@ import type { ChatMessage } from "../_shared/openai/responses.ts";
 export type Intent =
   | "login"
   | "forgot_password"
+  | "menu"
   | "children"
   | "fees"
   | "history"

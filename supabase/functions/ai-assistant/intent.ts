@@ -10,6 +10,7 @@ import type { Intent } from "./types.ts";
 export const INTENTS: Intent[] = [
   "login",
   "forgot_password",
+  "menu",
   "children",
   "fees",
   "history",
@@ -23,6 +24,16 @@ export const INTENTS: Intent[] = [
 /** Ajoutez une intention : une entrée ici + un hint dans prompts.ts. */
 const RULES: { intent: Intent; patterns: RegExp[] }[] = [
   { intent: "forgot_password", patterns: [/mot de passe (oubli|perdu)/i, /r[eé]initialis/i, /reset.*password/i] },
+  {
+    intent: "menu",
+    patterns: [
+      /\bmenus?\b/i,
+      /(liste|tous|toutes|quels?).*(services?|options?|fonctionnalit)/i,
+      /que (peux|sais)-?tu faire/i,
+      /tu peux faire quoi/i,
+      /services? disponibles?/i,
+    ],
+  },
   { intent: "login", patterns: [/connexion/i, /me connecter/i, /se connecter/i, /login/i, /identifiant/i] },
   { intent: "receipt", patterns: [/re[çc]u/i, /facture/i, /justificatif/i, /pdf/i] },
   { intent: "history", patterns: [/historique/i, /derniers? paiements?/i, /mes paiements/i, /transactions?/i] },
