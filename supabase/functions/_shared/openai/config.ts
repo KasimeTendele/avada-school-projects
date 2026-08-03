@@ -31,11 +31,11 @@ export function getOpenAIConfig(): OpenAIConfig {
     model: env("OPENAI_MODEL", "gemini-3.5-flash"),
     fallbackModel: env("OPENAI_FALLBACK_MODEL", "gemini-3.5-flash-lite"),
     temperature: Number(env("OPENAI_TEMPERATURE", "0.2")),
-    maxOutputTokens: Number(env("OPENAI_MAX_TOKENS", "700")),
-    maxToolRounds: Number(env("OPENAI_MAX_TOOL_ROUNDS", "4")),
+    maxOutputTokens: Number(env("OPENAI_MAX_TOKENS", "400")),
+    maxToolRounds: Number(env("OPENAI_MAX_TOOL_ROUNDS", "2")),
     memoryTtlMinutes: Number(env("AI_MEMORY_TTL_MINUTES", "30")),
     memoryMaxMessages: Number(env("AI_MEMORY_MAX_MESSAGES", "20")),
-    requestTimeoutMs: Number(env("OPENAI_TIMEOUT_MS", "25000")),
+    requestTimeoutMs: Number(env("OPENAI_TIMEOUT_MS", "9000")),
   };
 }
 
