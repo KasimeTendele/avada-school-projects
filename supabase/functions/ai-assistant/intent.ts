@@ -52,21 +52,10 @@ export function detectIntentByRules(text: string): Intent {
 
 export async function detectIntent(text: string, client?: OpenAIClient): Promise<Intent> {
   const rule = detectIntentByRules(text);
-  if (rule !== "unknown" || !client) return rule;
-  try {
-    const res = await client.chat({
-      messages: [
-        { role: "system", content: INTENT_PROMPT },
-        { role: "user", content: text.slice(0, 500) },
-      ],
-      temperature: 0,
-      max_tokens: 30,
-      response_format: { type: "json_object" },
-    });
-    const parsed = JSON.parse(textOf(res) || "{}") as { intent?: string };
-    const intent = parsed.intent as Intent | undefined;
-    return intent && INTENTS.includes(intent) ? intent : "general";
-  } catch {
-    return "general";
-  }
+  // Latence : on ne fait plus d'appel LLM dédié au classement d'intention.
+  // Les règles couvrent les cas utiles ; sinon le modèle principal décide seul.
+  void client;
+  void INTENT_PROMPT;
+  void textOf;
+  return rule === "unknown" ? "general" : rule;
 }
